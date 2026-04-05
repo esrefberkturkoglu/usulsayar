@@ -16,7 +16,7 @@ while ($true) {
     }
 
     $path = ($requestLine -split ' ')[1]
-    if ($path -eq '/') { $path = '/WebAudio_Prototype.html' }
+    if ($path -eq '/') { $path = '/USULSAYAR.html' }
     $filePath = Join-Path $root ($path.TrimStart('/').Replace('/', '\'))
 
     $writer = [System.IO.StreamWriter]::new($stream)
