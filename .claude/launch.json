@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "usulsayar",
+      "runtimeExecutable": "C:\\Users\\vord0\\AppData\\Local\\ms-playwright-go\\1.50.1\\node.exe",
+      "runtimeArgs": ["serve.js"],
+      "port": 8090,
+      "autoPort": true
+    }
+  ]
+}

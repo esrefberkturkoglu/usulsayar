@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>USÜLSAYAR</title>
+<style>
+:root{
+  --bg:#111;--bg2:#1a1a1a;--bg3:#252525;--text:#ddd;--text2:#888;--text3:#555;--border:#333;
+  --dum:#e8602c;--tek:#4a9eda;--teke:#9b6bc9;--teka:#3daa8c;--tekka:#d4a843;--tahek:#d45a8a;
+  --sweep:rgba(255,255,255,.85);--sweep-glow:rgba(255,255,255,.2);
+  --ctrl-bg:#222;--ctrl-thumb:#ccc;--ctrl-track:#444;
+}
+[data-theme="light"]{
+  --bg:#f4f2ed;--bg2:#e8e5df;--bg3:#dbd8d2;--text:#222;--text2:#666;--text3:#999;--border:#ccc;
+  --dum:#d14b1a;--tek:#2e7cb8;--teke:#7c48b0;--teka:#2a8a6e;--tekka:#b88c28;--tahek:#b83e6e;
+  --sweep:rgba(0,0,0,.75);--sweep-glow:rgba(0,0,0,.12);
+  --ctrl-bg:#e0ddd7;--ctrl-thumb:#555;--ctrl-track:#bbb;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--bg);color:var(--text);
+  display:grid;
+  grid-template-columns:56px 1fr 56px;
+  grid-template-rows:auto 1fr auto auto auto;
+  grid-template-areas:
+    "ctrl ctrl ctrl"
+    "lh viz rh"
+    "lh info rh"
+    "car car car"
+    "foot foot foot";
+  height:100dvh;overflow:hidden;
+  transition:background .3s,color .3s;
+  user-select:none;
+}
+@media(max-width:600px){
+  body{grid-template-columns:0 1fr 0;}
+  .hand-guide{position:absolute!important;width:40px!important;opacity:.15!important;z-index:0;pointer-events:none}
+  .hand-guide--left{left:0;top:0;bottom:0}
+  .hand-guide--right{right:0;top:0;bottom:0}
+}
+
+/* ── Controls ── */
+.controls{
+  grid-area:ctrl;display:flex;align-items:center;gap:10px;
+  padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border);
+  flex-wrap:wrap;z-index:10;
+}
+.btn-play{
+  width:56px;height:36px;border:none;border-radius:18px;
+  font-size:14px;font-weight:700;cursor:pointer;
+  background:var(--dum);color:#fff;transition:background .2s,transform .1s;
+}
+.btn-play:active{transform:scale(.95)}
+[data-playing="true"] .btn-play{background:#666}
+.slider-group{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
+.slider-group label{width:62px;text-align:right;flex-shrink:0}
+.slider-group input[type="range"]{
+  -webkit-appearance:none;appearance:none;width:110px;height:6px;
+  background:var(--ctrl-track);border-radius:3px;outline:none;cursor:pointer;
+}
+.slider-group input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--ctrl-thumb);cursor:pointer;
+}
+.slider-group input[type="range"]::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;border:none;
+  background:var(--ctrl-thumb);cursor:pointer;
+}
+.spinbox{
+  width:50px;padding:2px 4px;font-size:12px;text-align:center;
+  background:var(--ctrl-bg);color:var(--text);border:1px solid var(--border);border-radius:4px;
+}
+.mute-group{display:flex;gap:6px;margin-left:4px}
+.mute-btn{
+  padding:4px 12px;border:2px solid;border-radius:14px;
+  font-size:12px;font-weight:600;cursor:pointer;background:transparent;
+  transition:all .2s;
+}
+.mute-btn[data-voice="dum"]{border-color:var(--dum);color:var(--dum)}
+.mute-btn[data-voice="tek"]{border-color:var(--tek);color:var(--tek)}
+.mute-btn[aria-pressed="true"]{opacity:.3;text-decoration:line-through}
+.theme-btn{
+  margin-left:auto;width:32px;height:32px;border:1px solid var(--border);
+  border-radius:50%;background:var(--bg3);color:var(--text);
+  font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+
+/* ── Hand Guidance ── */
+.hand-guide{
+  display:flex;align-items:flex-start;justify-content:center;padding:12px 0;
+  transition:opacity .4s;
+}
+.hand-guide--left{grid-area:lh}
+.hand-guide--right{grid-area:rh}
+[data-playing="false"] .hand-guide{opacity:.15}
+.hand-bar{
+  width:10px;height:100%;border-radius:5px;
+  transform-origin:top;transform:scaleY(0);
+  transition:transform .06s ease-out;
+}
+.hand-guide--left .hand-bar{background:var(--tek)}
+.hand-guide--right .hand-bar{background:var(--dum)}
+
+/* ── Visualization ── */
+.viz-area{
+  grid-area:viz;display:flex;align-items:center;justify-content:center;
+  position:relative;min-height:0;padding:8px;
+}
+.viz-container{position:relative;width:min(90%,50vh);aspect-ratio:1}
+.segment-ring,.sweep-canvas{position:absolute;top:0;left:0;width:100%;height:100%}
+.sweep-canvas{pointer-events:none}
+[data-playing="false"] .sweep-canvas{opacity:0;transition:opacity .3s}
+[data-playing="true"] .sweep-canvas{opacity:1;transition:opacity .15s}
+.segment path{transition:filter .15s ease-out;stroke:var(--bg);stroke-width:.8}
+
+/* ── Beat Info ── */
+.beat-info{
+  grid-area:info;text-align:center;padding:4px 16px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  min-height:52px;justify-content:center;
+}
+.beat-labels{
+  white-space:nowrap;overflow:hidden;line-height:1.3;font-weight:600;
+  display:flex;gap:0;justify-content:center;
+}
+.beat-labels span{
+  transition:color .12s,text-shadow .12s;padding:0 1px;
+}
+.beat-labels span.active{text-shadow:0 0 8px currentColor}
+.beat-labels .sep{color:var(--text3);padding:0;font-weight:400}
+
+/* ── Carousel ── */
+.carousel{
+  grid-area:car;display:flex;align-items:center;justify-content:center;
+  background:var(--bg2);border-top:1px solid var(--border);
+  padding:6px 0;gap:0;
+}
+.carousel-inner{
+  display:flex;align-items:center;
+  width:min(100%,804px);
+}
+.carousel-arrow{
+  width:36px;height:48px;border:none;background:transparent;
+  color:var(--text2);font-size:22px;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:color .2s;
+}
+.carousel-arrow:hover{color:var(--text)}
+.carousel-track{
+  flex:1;overflow-x:auto;scroll-snap-type:x mandatory;
+  display:flex;gap:8px;
+  scrollbar-width:none;-ms-overflow-style:none;
+  scroll-behavior:auto;
+  /* 5 kart: 5×140 + 4×8 = 732px, padding divler eklenince ilk/son kart ortalanır */
+  max-width:732px;
+}
+.carousel-track::-webkit-scrollbar{display:none}
+.carousel-card{
+  flex:0 0 140px;scroll-snap-align:center;
+  padding:8px 6px;border-radius:8px;text-align:center;
+  cursor:pointer;transition:all .2s;
+  border:2px solid transparent;background:var(--bg3);
+}
+.carousel-card .c-units{font-size:11px;color:var(--text3);display:block}
+.carousel-card .c-name{font-size:13px;font-weight:600;color:var(--text2)}
+.carousel-card.active{border-color:var(--dum);background:var(--bg2)}
+.carousel-card.active .c-name{color:var(--text)}
+
+/* ── Footer ── */
+.app-footer{
+  grid-area:foot;padding:6px 14px;background:var(--bg2);
+  border-top:1px solid var(--border);font-size:11px;color:var(--text3);
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+}
+.render-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.render-row input[type="number"]{
+  width:48px;padding:2px 4px;font-size:12px;text-align:center;
+  background:var(--ctrl-bg);color:var(--text);border:1px solid var(--border);border-radius:4px;
+}
+.btn-save{
+  padding:4px 12px;border:1px solid var(--border);border-radius:4px;
+  background:var(--bg3);color:var(--text);font-size:12px;cursor:pointer;
+}
+.btn-save:hover{border-color:var(--text2)}
+.render-status{font-size:11px;color:var(--text2)}
+.footer-right{margin-left:auto;text-align:right;line-height:1.5}
+.footer-right a{color:var(--text2);text-decoration:none}
+.footer-right a:hover{text-decoration:underline}
+.headphone-note{font-size:10px;color:var(--text3);font-style:italic}
+</style>
+</head>
+<body data-theme="dark" data-playing="false">
+
+<header class="controls">
+  <button id="toggle" class="btn-play">Çal</button>
+
+  <div class="slider-group">
+    <label for="bpm">Hız (BPM)</label>
+    <input id="bpm" type="range" min="33" max="333" value="120"/>
+    <input id="bpmNumber" class="spinbox" type="number" min="33" max="333" step="1" value="120"/>
+  </div>
+
+  <div class="slider-group">
+    <label for="dumFreq">Düm (Hz)</label>
+    <input id="dumFreq" type="range" min="77" max="164" value="140"/>
+    <input id="dumFreqNumber" class="spinbox" type="number" min="77" max="164" step="1" value="140"/>
+  </div>
+
+  <div class="slider-group">
+    <label for="tekFreq">Tek (Hz)</label>
+    <input id="tekFreq" type="range" min="77" max="164" value="141"/>
+    <input id="tekFreqNumber" class="spinbox" type="number" min="77" max="164" step="1" value="141"/>
+  </div>
+
+  <div class="slider-group">
+    <label for="volume">Ses (%)</label>
+    <input id="volume" type="range" min="0" max="100" value="100"/>
+    <input id="volumeNumber" class="spinbox" type="number" min="0" max="100" step="1" value="100"/>
+  </div>
+
+  <div class="mute-group">
+    <button class="mute-btn" id="dumMute" data-voice="dum" aria-pressed="false" aria-label="Düm sesini kapat">Düm</button>
+    <button class="mute-btn" id="tekMute" data-voice="tek" aria-pressed="false" aria-label="Tek sesini kapat">Tek</button>
+  </div>
+
+  <button class="theme-btn" id="themeToggle" aria-label="Tema değiştir">☀</button>
+</header>
+
+<aside class="hand-guide hand-guide--left" aria-hidden="true">
+  <div class="hand-bar" id="leftBar"></div>
+</aside>
+
+<main class="viz-area">
+  <div class="viz-container">
+    <svg id="segmentRing" class="segment-ring" viewBox="0 0 200 200"></svg>
+    <canvas id="sweepCanvas" class="sweep-canvas"></canvas>
+  </div>
+</main>
+
+<aside class="hand-guide hand-guide--right" aria-hidden="true">
+  <div class="hand-bar" id="rightBar"></div>
+</aside>
+
+<div class="beat-info">
+  <div class="beat-labels" id="beatLabels" aria-live="polite"></div>
+</div>
+
+<nav class="carousel">
+  <div class="carousel-inner">
+    <button class="carousel-arrow" id="carPrev" aria-label="Önceki usül">&#8249;</button>
+    <div class="carousel-track" id="carouselTrack"></div>
+    <button class="carousel-arrow" id="carNext" aria-label="Sonraki usül">&#8250;</button>
+  </div>
+</nav>
+
+<footer class="app-footer">
+  <div class="render-row">
+    <span>Tekrar</span>
+    <input id="repeatCount" type="number" min="1" max="111" value="1"/>
+    <button id="renderWavBtn" class="btn-save" aria-label="WAV olarak kaydet">&#9660; Kaydet</button>
+    <span class="render-status" id="renderStatus"></span>
+  </div>
+  <div class="footer-right">
+    <div>Tasarım ve Geliştirme: <a href="https://esrefberkturkoglu.com" target="_blank" rel="noopener">Eşref Berk Türkoğlu</a></div>
+    <div class="headphone-note">Etkili öğrenim için kulaklık kullanımı veya optimal bir stereo dinleme deneyimi şarttır.</div>
+  </div>
+</footer>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// AUDIO ENGINE (preserved — do not modify)
+// ══════════════════════════════════════════════════════════════════
+
+const BPM_MIN = 33;
+const BPM_MAX = 333;
+const BPM_DEFAULT = 120;
+const FREQ_MIN = 77;
+const FREQ_MAX = 164;
+const VOL_MIN = 0;
+const VOL_MAX = 100;
+
+const MAX_MASTER_GAIN = Math.pow(10, -0.3 / 20);
+const HP_FREQ = 35;
+
+const LOOKAHEAD_MS = 25;
+const SCHEDULE_AHEAD_TIME = 0.1;
+const TRANSPORT_START_DELAY = 0.05;
+
+const PAN_RIGHT = 0.50;
+const PAN_LEFT = -0.50;
+
+const NOISE_DURATION = 0.02;
+const RENDER_SAMPLE_RATE = 48000;
+const RENDER_TAIL_SECONDS = 1.0;
+const REPEAT_MIN = 1;
+const REPEAT_MAX = 111;
+
+const ENV_FLOOR = 0.0001;
+
+const DUM_OSC1_TYPE = "sine";
+const DUM_OSC2_TYPE = "triangle";
+const DUM_FREQ_START1_MUL = 1.28;
+const DUM_FREQ_START2_MUL = 1.24;
+const DUM_FREQ_END2_MUL = 0.995;
+const DUM_SWEEP1_TIME = 0.018;
+const DUM_SWEEP2_TIME = 0.022;
+const DUM_LP_FREQ_MUL = 5.5;
+const DUM_LP_FREQ_CAP = 1200;
+const DUM_GAIN2_PEAK_RATIO = 0.18;
+const DUM_GAIN2_BODY_RATIO = 0.7;
+const DUM_NOISE_BP_FREQ = 950;
+const DUM_NOISE_ATTACK = 0.002;
+const DUM_NOISE_PEAK = 0.03;
+const DUM_NOISE_DECAY_END = 0.014;
+const DUM_MIN_NEXT_HIT = 0.03;
+
+const DUM_ENV_ATTACK = 0.002;
+const DUM_ENV_HOLD = 0.004;
+const DUM_ENV_BODY_MUL = 0.22;
+const DUM_ENV_BODY_MIN = 0.03;
+const DUM_ENV_BODY_MAX = 0.18;
+const DUM_ENV_TAIL_MUL = 0.60;
+const DUM_ENV_TAIL_MIN = 0.05;
+const DUM_ENV_TAIL_MAX = 0.75;
+const DUM_ENV_PEAK = 0.95;
+const DUM_ENV_BODY_LEVEL = 0.22;
+
+const TEK_OSC1_TYPE = "triangle";
+const TEK_OSC2_TYPE = "sine";
+const TEK_FREQ_START1_MUL = 1.20;
+const TEK_FREQ_START2_MUL = 1.15;
+const TEK_FREQ_END2_MUL = 1.01;
+const TEK_SWEEP1_TIME = 0.010;
+const TEK_SWEEP2_TIME = 0.012;
+const TEK_LP_FREQ_MUL = 4.2;
+const TEK_LP_FREQ_CAP = 4000;
+const TEK_GAIN2_PEAK_RATIO = 0.12;
+const TEK_GAIN2_BODY_RATIO = 0.5;
+const TEK_NOISE_BP_FREQ = 2400;
+const TEK_NOISE_ATTACK = 0.0015;
+const TEK_NOISE_PEAK = 0.045;
+const TEK_NOISE_DECAY_END = 0.010;
+const TEK_MIN_NEXT_HIT = 0.02;
+
+const TEK_SHORT_PROFILE = {
+  attack:0.0012,hold:0.0018,bodyDecayMul:0.14,bodyDecayMin:0.015,bodyDecayMax:0.065,
+  tailMul:0.34,tailMin:0.018,tailMax:0.16,peak:0.68,bodyLevel:0.13
+};
+const TEK_LONG_PROFILE = {
+  attack:0.0018,hold:0.0032,bodyDecayMul:0.24,bodyDecayMin:0.025,bodyDecayMax:0.13,
+  tailMul:0.74,tailMin:0.04,tailMax:0.62,peak:0.70,bodyLevel:0.22
+};
+
+const NOISE_Q = 1.2;
+const NOISE_STOP_PAD = 0.02;
+const OSC_STOP_PAD = 0.02;
+
+const HEK_FREQ_RIGHT_MUL = 1.01;
+const HEK_FREQ_LEFT_MUL = 0.99;
+const HEK_LEFT_DELAY = 0.004;
+
+// ── Audio Context Setup ─────────────────────────────────────────
+const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+const audioCtx = new AudioContextClass();
+
+const master = audioCtx.createGain();
+master.gain.value = MAX_MASTER_GAIN;
+
+const gate = audioCtx.createGain();
+gate.gain.value = 1;
+
+const hp = audioCtx.createBiquadFilter();
+hp.type = "highpass";
+hp.frequency.value = HP_FREQ;
+
+master.connect(gate);
+gate.connect(hp);
+hp.connect(audioCtx.destination);
+
+// ── State ───────────────────────────────────────────────────────
+let bpm = BPM_DEFAULT;
+let dumFreq = 140;
+let tekFreq = 141;
+let volume = VOL_MAX;
+let soloMode = "none";
+
+let isPlaying = false;
+let currentStep = 0;
+let nextNoteTime = 0;
+let timerId = null;
+
+// Faz 0: UI notification hook
+let onScheduledEvent = null;
+
+// Mute state (replaces solo checkboxes)
+let dumMuted = false;
+let tekMuted = false;
+
+// ── Envelope Cache ──────────────────────────────────────────────
+let cachedTekEnvProfile = null;
+let cachedTekEnvBpm = null;
+
+function getTekEnvProfile(localBpm) {
+  if (cachedTekEnvBpm === localBpm) return cachedTekEnvProfile;
+  const bpmNorm = (localBpm - BPM_MIN) / (BPM_MAX - BPM_MIN);
+  const mix = 1 - clamp(bpmNorm, 0, 1);
+  const s = TEK_SHORT_PROFILE, l = TEK_LONG_PROFILE;
+  cachedTekEnvProfile = {
+    attack:lerp(s.attack,l.attack,mix),hold:lerp(s.hold,l.hold,mix),
+    bodyDecayMul:lerp(s.bodyDecayMul,l.bodyDecayMul,mix),
+    bodyDecayMin:lerp(s.bodyDecayMin,l.bodyDecayMin,mix),
+    bodyDecayMax:lerp(s.bodyDecayMax,l.bodyDecayMax,mix),
+    tailMul:lerp(s.tailMul,l.tailMul,mix),
+    tailMin:lerp(s.tailMin,l.tailMin,mix),
+    tailMax:lerp(s.tailMax,l.tailMax,mix),
+    peak:lerp(s.peak,l.peak,mix),bodyLevel:lerp(s.bodyLevel,l.bodyLevel,mix)
+  };
+  cachedTekEnvBpm = localBpm;
+  return cachedTekEnvProfile;
+}
+
+// ── Noise Buffer ────────────────────────────────────────────────
+const noiseBuffer = createNoiseBuffer(audioCtx, NOISE_DURATION);
+
+// ── DOM References ──────────────────────────────────────────────
+const bpmSlider = document.getElementById("bpm");
+const bpmNumber = document.getElementById("bpmNumber");
+const dumSlider = document.getElementById("dumFreq");
+const dumNumber = document.getElementById("dumFreqNumber");
+const tekSlider = document.getElementById("tekFreq");
+const tekNumber = document.getElementById("tekFreqNumber");
+const volumeSlider = document.getElementById("volume");
+const volumeNumber = document.getElementById("volumeNumber");
+
+// ── Utility Functions ───────────────────────────────────────────
+function clamp(x, min, max) { return Math.max(min, Math.min(max, x)); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function secondsPerBeat(localBpm = bpm) { return 60 / localBpm; }
+function updateMasterVolume() { master.gain.value = (volume / VOL_MAX) * MAX_MASTER_GAIN; }
+
+// ── Generic UI Helpers ──────────────────────────────────────────
+function syncUI(slider, numberInput, displayId, value) {
+  slider.value = value;
+  numberInput.value = value;
+}
+function bindSliderSpinbox(slider, numberInput, setter) {
+  slider.addEventListener("input", e => setter(e.target.value));
+  numberInput.addEventListener("input", e => setter(e.target.value));
+  numberInput.addEventListener("change", e => setter(e.target.value));
+}
+
+// ── Frequency Order Enforcement ─────────────────────────────────
+function enforceFreqOrder() {
+  if (dumFreq >= tekFreq) {
+    tekFreq = Math.min(FREQ_MAX, dumFreq + 1);
+    if (tekFreq <= dumFreq) dumFreq = Math.max(FREQ_MIN, tekFreq - 1);
+  }
+}
+
+// ── Parameter Setters ───────────────────────────────────────────
+function setBpmValue(value) {
+  const oldBpm = bpm;
+  bpm = clamp(Number(value) || BPM_DEFAULT, BPM_MIN, BPM_MAX);
+  syncUI(bpmSlider, bpmNumber, null, bpm);
+  if (isPlaying && oldBpm !== bpm) resyncAfterBpmChange(oldBpm, bpm);
+}
+function resyncAfterBpmChange(oldBpm, newBpm) {
+  const now = audioCtx.currentTime;
+  const oldSpb = 60 / oldBpm;
+  const newSpb = 60 / newBpm;
+  const oldCycleDur = totalUnits * oldSpb;
+  const newCycleDur = totalUnits * newSpb;
+  // Preserve sweep hand position: compute progress under old tempo, rebase to new
+  const elapsed = now - cycleStartTime;
+  const progress = Math.max(0, (elapsed % oldCycleDur) / oldCycleDur);
+  cycleStartTime = now - progress * newCycleDur;
+  // Rebase nextNoteTime: scale remaining time by tempo ratio
+  const remaining = nextNoteTime - now;
+  if (remaining > 0) {
+    nextNoteTime = now + remaining * (oldBpm / newBpm);
+  }
+}
+function setVolumeValue(value) {
+  volume = clamp(Number(value) || 0, VOL_MIN, VOL_MAX);
+  syncUI(volumeSlider, volumeNumber, null, volume);
+  updateMasterVolume();
+}
+function setDumValue(value) {
+  dumFreq = clamp(Number(value) || FREQ_MIN, FREQ_MIN, FREQ_MAX);
+  enforceFreqOrder();
+  syncUI(dumSlider, dumNumber, null, dumFreq);
+  syncUI(tekSlider, tekNumber, null, tekFreq);
+}
+function setTekValue(value) {
+  tekFreq = clamp(Number(value) || FREQ_MIN, FREQ_MIN, FREQ_MAX);
+  if (tekFreq <= dumFreq) {
+    dumFreq = Math.max(FREQ_MIN, tekFreq - 1);
+    if (tekFreq <= dumFreq) tekFreq = Math.min(FREQ_MAX, dumFreq + 1);
+  }
+  syncUI(dumSlider, dumNumber, null, dumFreq);
+  syncUI(tekSlider, tekNumber, null, tekFreq);
+}
+
+// ── Noise Buffer Creation ───────────────────────────────────────
+function createNoiseBuffer(ctx, duration) {
+  const length = Math.floor(ctx.sampleRate * duration);
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+  return buffer;
+}
+
+// ── Envelope Calculation ────────────────────────────────────────
+function getEnvelope(type, secondsToNextHit, localBpm = bpm) {
+  if (type === "dum") {
+    return {
+      attack:DUM_ENV_ATTACK,hold:DUM_ENV_HOLD,
+      bodyDecay:clamp(secondsToNextHit*DUM_ENV_BODY_MUL,DUM_ENV_BODY_MIN,DUM_ENV_BODY_MAX),
+      tailRelease:clamp(secondsToNextHit*DUM_ENV_TAIL_MUL,DUM_ENV_TAIL_MIN,DUM_ENV_TAIL_MAX),
+      peak:DUM_ENV_PEAK,bodyLevel:DUM_ENV_BODY_LEVEL,floor:ENV_FLOOR
+    };
+  }
+  const p = getTekEnvProfile(localBpm);
+  return {
+    attack:p.attack,hold:p.hold,
+    bodyDecay:clamp(secondsToNextHit*p.bodyDecayMul,p.bodyDecayMin,p.bodyDecayMax),
+    tailRelease:clamp(secondsToNextHit*p.tailMul,p.tailMin,p.tailMax),
+    peak:p.peak,bodyLevel:p.bodyLevel,floor:ENV_FLOOR
+  };
+}
+
+// ── Dual Oscillator Voice Factory ───────────────────────────────
+function createDualOscVoice(ctx, outputNode, params) {
+  const {freqHz,time,env,panValue,osc1Type,osc2Type,
+    freqStart1Mul,freqStart2Mul,freqEnd2Mul,
+    sweep1Time,sweep2Time,lpFreqMul,lpFreqCap,
+    gain2PeakRatio,gain2BodyRatio,accent} = params;
+  const osc1=ctx.createOscillator(),osc2=ctx.createOscillator();
+  const gain1=ctx.createGain(),gain2=ctx.createGain();
+  const toneLP=ctx.createBiquadFilter(),panner=ctx.createStereoPanner();
+  panner.pan.value=panValue;
+  osc1.type=osc1Type;osc2.type=osc2Type;
+  toneLP.type="lowpass";toneLP.frequency.value=Math.min(lpFreqCap,freqHz*lpFreqMul);
+  osc1.frequency.setValueAtTime(freqHz*freqStart1Mul,time);
+  osc1.frequency.exponentialRampToValueAtTime(freqHz,time+sweep1Time);
+  osc2.frequency.setValueAtTime(freqHz*freqStart2Mul,time);
+  osc2.frequency.exponentialRampToValueAtTime(freqHz*freqEnd2Mul,time+sweep2Time);
+  const envEnd=time+env.attack+env.hold+env.bodyDecay+env.tailRelease;
+  gain1.gain.setValueAtTime(env.floor,time);
+  gain1.gain.linearRampToValueAtTime(env.peak*accent,time+env.attack);
+  gain1.gain.setValueAtTime(env.peak*accent,time+env.attack+env.hold);
+  gain1.gain.exponentialRampToValueAtTime(env.bodyLevel*accent,time+env.attack+env.hold+env.bodyDecay);
+  gain1.gain.exponentialRampToValueAtTime(env.floor,envEnd);
+  gain2.gain.setValueAtTime(env.floor,time);
+  gain2.gain.linearRampToValueAtTime(env.peak*gain2PeakRatio*accent,time+env.attack);
+  gain2.gain.setValueAtTime(env.peak*gain2PeakRatio*accent,time+env.attack+env.hold);
+  gain2.gain.exponentialRampToValueAtTime(env.bodyLevel*gain2BodyRatio*accent,time+env.attack+env.hold+env.bodyDecay);
+  gain2.gain.exponentialRampToValueAtTime(env.floor,envEnd);
+  osc1.connect(gain1);osc2.connect(gain2);
+  gain1.connect(toneLP);gain2.connect(toneLP);
+  toneLP.connect(panner);panner.connect(outputNode);
+  osc1.start(time);osc2.start(time);
+  const stopTime=envEnd+OSC_STOP_PAD;
+  osc1.stop(stopTime);osc2.stop(stopTime);
+}
+
+// ── Engine ──────────────────────────────────────────────────────
+function createEngine(ctx, outputNode, localNoiseBuffer) {
+  function addNoiseTransient(type, time, panValue) {
+    const noise=ctx.createBufferSource();noise.buffer=localNoiseBuffer;
+    const filter=ctx.createBiquadFilter();filter.type="bandpass";filter.Q.value=NOISE_Q;
+    const gain=ctx.createGain();
+    const panner=ctx.createStereoPanner();panner.pan.value=panValue;
+    if(type==="dum"){
+      filter.frequency.value=DUM_NOISE_BP_FREQ;
+      gain.gain.setValueAtTime(ENV_FLOOR,time);
+      gain.gain.linearRampToValueAtTime(DUM_NOISE_PEAK,time+DUM_NOISE_ATTACK);
+      gain.gain.exponentialRampToValueAtTime(0.001,time+DUM_NOISE_DECAY_END);
+    }else{
+      filter.frequency.value=TEK_NOISE_BP_FREQ;
+      gain.gain.setValueAtTime(ENV_FLOOR,time);
+      gain.gain.linearRampToValueAtTime(TEK_NOISE_PEAK,time+TEK_NOISE_ATTACK);
+      gain.gain.exponentialRampToValueAtTime(0.001,time+TEK_NOISE_DECAY_END);
+    }
+    noise.connect(filter);filter.connect(gain);gain.connect(panner);panner.connect(outputNode);
+    noise.start(time);noise.stop(time+NOISE_STOP_PAD);
+  }
+  function playDum(time,nextSameSideTime,freqHz,localBpm,accent=1){
+    const secondsToNextHit=Math.max(DUM_MIN_NEXT_HIT,nextSameSideTime-time);
+    const env=getEnvelope("dum",secondsToNextHit,localBpm);
+    createDualOscVoice(ctx,outputNode,{
+      freqHz,time,env,panValue:PAN_RIGHT,accent,
+      osc1Type:DUM_OSC1_TYPE,osc2Type:DUM_OSC2_TYPE,
+      freqStart1Mul:DUM_FREQ_START1_MUL,freqStart2Mul:DUM_FREQ_START2_MUL,
+      freqEnd2Mul:DUM_FREQ_END2_MUL,
+      sweep1Time:DUM_SWEEP1_TIME,sweep2Time:DUM_SWEEP2_TIME,
+      lpFreqMul:DUM_LP_FREQ_MUL,lpFreqCap:DUM_LP_FREQ_CAP,
+      gain2PeakRatio:DUM_GAIN2_PEAK_RATIO,gain2BodyRatio:DUM_GAIN2_BODY_RATIO
+    });
+    addNoiseTransient("dum",time,PAN_RIGHT);
+  }
+  function playWeakHit(time,nextSameSideTime,freqHz,panValue,localBpm,accent=1){
+    const secondsToNextHit=Math.max(TEK_MIN_NEXT_HIT,nextSameSideTime-time);
+    const env=getEnvelope("tek",secondsToNextHit,localBpm);
+    createDualOscVoice(ctx,outputNode,{
+      freqHz,time,env,panValue,accent,
+      osc1Type:TEK_OSC1_TYPE,osc2Type:TEK_OSC2_TYPE,
+      freqStart1Mul:TEK_FREQ_START1_MUL,freqStart2Mul:TEK_FREQ_START2_MUL,
+      freqEnd2Mul:TEK_FREQ_END2_MUL,
+      sweep1Time:TEK_SWEEP1_TIME,sweep2Time:TEK_SWEEP2_TIME,
+      lpFreqMul:TEK_LP_FREQ_MUL,lpFreqCap:TEK_LP_FREQ_CAP,
+      gain2PeakRatio:TEK_GAIN2_PEAK_RATIO,gain2BodyRatio:TEK_GAIN2_BODY_RATIO
+    });
+    addNoiseTransient("tek",time,panValue);
+  }
+  function playHek(time,rightNextSameSideTime,leftNextSameSideTime,freqHz,localBpm,accent=1){
+    playWeakHit(time,rightNextSameSideTime,freqHz*HEK_FREQ_RIGHT_MUL,PAN_RIGHT,localBpm,accent);
+    playWeakHit(time+HEK_LEFT_DELAY,leftNextSameSideTime,freqHz*HEK_FREQ_LEFT_MUL,PAN_LEFT,localBpm,accent);
+  }
+  return {playDum,playWeakHit,playHek};
+}
+
+// ── Solo Mode ───────────────────────────────────────────────────
+function shouldPlayEventKind(kind, localSoloMode = soloMode) {
+  if (localSoloMode === "none") return true;
+  if (localSoloMode === "dum") return kind === "dum";
+  if (localSoloMode === "tek") return kind !== "dum";
+  return true;
+}
+
+function updateMuteState() {
+  if (dumMuted && tekMuted) {
+    soloMode = "none";
+    gate.gain.setValueAtTime(0, audioCtx.currentTime);
+  } else {
+    gate.gain.setValueAtTime(1, audioCtx.currentTime);
+    if (dumMuted) soloMode = "tek";
+    else if (tekMuted) soloMode = "dum";
+    else soloMode = "none";
+  }
+  document.getElementById("dumMute").setAttribute("aria-pressed", String(dumMuted));
+  document.getElementById("tekMute").setAttribute("aria-pressed", String(tekMuted));
+}
+
+// ── Live Engine Instance ────────────────────────────────────────
+const liveEngine = createEngine(audioCtx, master, noiseBuffer);
+
+// ── Pattern Helpers ─────────────────────────────────────────────
+function D(units=1){return{label:units===1?"düm":`düm${units}`,kind:"dum",units}}
+function TL(label="tek",units=1){return{label:units===1?label:`${label}${units}`,kind:"weakLeft",units}}
+function TR(label="te",units=1){return{label:units===1?label:`${label}${units}`,kind:"weakRight",units}}
+function BOTH(label="hek",units=1){return{label:units===1?label:`${label}${units}`,kind:"bothWeak",units}}
+
+// ── Usül Definitions ────────────────────────────────────────────
+const usulDefs = {
+  "Nim Sofyan":[D(),TL("tek")],
+  "Semai":[D(),TL("tek"),TL("tek")],
+  "Sofyan":[D(2),TR("te"),TL("ke")],
+  "Türk Aksağı":[D(2),TL("tek",2),TL("tek")],
+  "Yürük Semai / Sengin Semai":[D(),TL("tek"),TL("tek"),D(),TL("tek",2)],
+  "Devr-i Hindi":[D(),TL("tek"),TL("tek"),D(2),TL("tek",2)],
+  "Devr-i Turan":[D(2),TL("tek",2),TL("tek",3)],
+  "Düyek":[D(),TL("tek",2),TL("tek"),D(2),TL("tek",2)],
+  "Müsemmen":[D(3),TL("tek",2),TL("tek",3)],
+  "Aksak":[D(2),TR("te"),TL("ke"),D(2),TL("tek",2),TL("tek")],
+  "Evfer":[D(2),TR("te"),TL("ke"),D(2),TL("tek"),TL("tek",2)],
+  "Çifte Sofyan":[D(),TL("tek"),TL("tek"),D(2),TL("tek",2),TL("tek",2)],
+  "Raks Aksağı":[D(2),TL("tek",3),D(2),TL("tek",2)],
+  "Oynak":[D(2),TL("tek",2),D(2),TL("tek",3)],
+  "Aksak Semai / Curcuna":[D(2),TR("te"),TL("kâ",2),D(2),TL("tek",2),TL("tek")],
+  "Lenk Fahte":[D(2),TL("tek",3),D(),TL("tek",2),TR("te"),TL("ke")],
+  "Çengi Harbi":[D(),TL("tek"),D(),TL("tek"),D(),TL("tek"),TL("tek"),D(),TL("tek"),TL("tek")],
+  "Tek Vuruş":[D(2),TL("tek",2),TL("tek"),D(2),TL("tek",2),TL("tek",2)],
+  "Firenkçin":[D(),D(2),D(),D(2),TR("te"),TL("ke"),TR("te"),TL("ke"),TR("te"),TL("ke")],
+  "Nim Çember":[D(2),TR("te"),TL("ke"),D(2),TL("ta",2),BOTH("hek",2),TR("te"),TL("ke")],
+  "İkiz Aksak":[D(),TL("tek"),TL("tek"),D(2),TL("tek",2),D(2),TL("tek",2),TL("tek")],
+  "Nim Evsat":[TR("te"),TL("ke"),TR("te"),TL("kâ",2),D(4),D(4)],
+  "Şarkı Devr-i Revanı":[D(),TL("tek"),TL("tek"),D(2),TL("tek",2),D(2),TL("tek",2),TR("te"),TL("ke")],
+  "Bektaşi Devr-i Revanı":[D(2),TR("te"),TL("ke"),D(2),TL("tek",2),TL("tek"),D(2),TR("te"),TL("ke")],
+  "Ayin Devr-i Revanı":[D(3),D(2),TL("tek",2),D(3),TL("tek",2),TL("tek",2)],
+  "Raksan":[D(),TL("tek"),TL("tek"),D(2),TR("te"),TL("kâ",2),D(2),TL("tek",2),TR("te"),TL("kâ",2)],
+  "Bektaşi Raksanı":[D(2),TR("te"),TL("kâ",2),D(2),TR("te"),TL("kâ",2),D(2),TL("tek",2),TL("tek")],
+  "Çifte Düyek":[D(2),TL("tek",4),TL("tek",2),D(2),D(2),TL("tek",2),TR("te"),TL("ke")],
+  "Fer":[D(2),TR("te"),TL("ke"),D(2),TL("tek",2),D(),TL("tek"),D(),D(),TL("tek",2),TR("te"),TL("ke")],
+  "Nim Berefşan":[D(2),TL("tek"),D(2),TL("tek"),D(2),D(),TL("tek"),D(),D(),TL("tek",2),TR("te"),TL("ke")],
+  "Nim Hafif":[D(),TL("tek"),D(2),D(),TL("tek"),D(2),D(),TL("tek"),D(),D(),TL("ta"),BOTH("hek"),TR("te",0.5),TL("ke",0.5),TR("te",0.5),TL("ke",0.5)],
+  "Darb-ı Türki":[TL("tek",2),TL("tek"),TL("tek"),TR("te"),TL("ke"),D(2),D(2),TL("tek",2),TR("te"),TL("ke"),D(2),D(),D()],
+  "Nim Devir":[D(2),D(2),TL("tek",2),D(4),D(4),TR("te"),TL("ke"),TR("te"),TL("ke")],
+  "Fahte":[D(2),D(),D(),TL("tek",2),TL("tek",2),TL("tek",2),D(2),TL("ta",2),BOTH("hek",2),TR("te"),TL("ke"),TR("te"),TL("ke")],
+  "Durak Evferi":[TR("te"),TL("ke"),TR("te"),TL("kâ",2),D(4),D(4),TL("tek",4),TL("tek",4)],
+  "Hezeç":[D(2),D(),D(),TL("tek",2),D(),D(),TL("tek",2),D(2),TL("tek",2),D(2),TL("tek",2),TR("te"),TL("ke"),TR("te"),TL("ke")],
+  "Çenber":[D(2),TR("te"),TL("ke"),D(2),D(),D(),TL("tek",2),TL("tek",2),TL("tek",2),D(2),TL("ta",2),BOTH("hek",2),TR("te"),TL("ke"),TR("te"),TL("ke")],
+  "Nim Sakil":[D(2),TR("te"),TL("ke"),D(2),TR("te"),TL("ke"),TR("te"),TL("ke"),D(2),TR("te"),TL("ke"),TR("te",0.5),TL("ke",0.5),D(),TL("ta",2),BOTH("hek",2),TR("te"),TL("ke"),TR("te"),TL("ke")],
+  "Evsat":[TR("te"),TL("ke"),TR("te"),TL("kâ",2),D(2),TL("tek",2),D(2),D(2),TL("tek",2),TR("te"),TL("kâ",2),D(4),D(4)],
+  "Devr-i Kebir":[D(2),D(2),TL("tek",2),D(4),TL("tek",4),TL("tek",4),D(2),TL("tek",4),TR("te"),TL("ke"),TR("te"),TL("ke")],
+  "Firengifer":[D(2),D(4),D(2),D(4),D(2),TL("tek",2),D(2),D(2),TL("ta",2),BOTH("hek",2),TR("te"),TL("ke"),TR("te"),TL("ke")],
+  "Remel":[D(2),TR("te"),TL("ke"),D(2),TR("te"),TL("ke"),TR("te"),TL("ke"),D(2),TR("te"),TL("ke"),D(2),D(2),TL("tek",2),D(),TL("tek"),D(),D(),TL("tek",2),TR("te"),TL("ke")],
+  "Muhammes":[D(2),TR("te"),TL("ke"),D(2),TL("tek",2),D(2),D(2),TL("tek",2),TR("te"),TL("ke"),D(2),TL("tek",2),TR("te"),TL("ke"),D(2),TL("ta",2),BOTH("hek",2),TR("te"),TL("ke"),TR("te"),TL("ke")],
+  "Hafif":[D(),TL("tek"),TL("tek",2),D(),TL("tek"),TL("tek",2),D(2),TR("te"),TL("ke"),D(),TL("tek"),TL("tek",2),D(2),TR("te"),TL("ke"),D(),TL("tek"),D(),TL("tek"),D(),TL("tek"),D(),D(),TL("tek",2),TR("te"),TL("ke")],
+  "Berefşan":[D(4),TL("tek",2),D(4),TL("tek",2),D(4),D(2),TL("tek",2),D(2),D(2),TL("ta",2),BOTH("hek",2),TR("te"),TL("ke"),TR("te"),TL("ke")]
+};
+
+function getUsulUnitCount(name) {
+  return usulDefs[name].reduce((sum, ev) => sum + ev.units, 0);
+}
+
+// ── Pattern State ───────────────────────────────────────────────
+let currentUsulName = "Nim Sofyan";
+let pattern = usulDefs[currentUsulName];
+
+// ── Side Detection ──────────────────────────────────────────────
+function eventHasRightSide(event) {
+  return event.kind === "dum" || event.kind === "weakRight" || event.kind === "bothWeak";
+}
+function eventHasLeftSide(event) {
+  return event.kind === "weakLeft" || event.kind === "bothWeak";
+}
+function getNextSameSideTime(stepIndex, currentTime, side, patternDef = pattern, localBpm = bpm) {
+  const len = patternDef.length;
+  let accumulated = patternDef[stepIndex].units * secondsPerBeat(localBpm);
+  for (let offset = 1; offset <= len; offset++) {
+    const nextIndex = (stepIndex + offset) % len;
+    const nextEvent = patternDef[nextIndex];
+    if (side === "right" && eventHasRightSide(nextEvent)) return currentTime + accumulated;
+    if (side === "left" && eventHasLeftSide(nextEvent)) return currentTime + accumulated;
+    accumulated += nextEvent.units * secondsPerBeat(localBpm);
+  }
+  return currentTime + accumulated;
+}
+
+// ── Event Dispatch ──────────────────────────────────────────────
+function dispatchEvent(engine, event, time, rightNext, leftNext, localDumFreq, localTekFreq, localBpm, localSoloMode) {
+  if (!shouldPlayEventKind(event.kind, localSoloMode)) return;
+  if (event.kind === "dum") engine.playDum(time, rightNext, localDumFreq, localBpm, 1.0);
+  else if (event.kind === "weakLeft") engine.playWeakHit(time, leftNext, localTekFreq, PAN_LEFT, localBpm, 1.0);
+  else if (event.kind === "weakRight") engine.playWeakHit(time, rightNext, localTekFreq, PAN_RIGHT, localBpm, 1.0);
+  else if (event.kind === "bothWeak") engine.playHek(time, rightNext, leftNext, localTekFreq, localBpm, 1.0);
+}
+
+// ── Scheduler & Transport ───────────────────────────────────────
+let cycleStartTime = 0;
+
+function scheduler() {
+  while (nextNoteTime < audioCtx.currentTime + SCHEDULE_AHEAD_TIME) {
+    const stepIndex = currentStep;
+    const event = pattern[stepIndex];
+    const time = nextNoteTime;
+    const rightNext = getNextSameSideTime(stepIndex, time, "right");
+    const leftNext = getNextSameSideTime(stepIndex, time, "left");
+    dispatchEvent(liveEngine, event, time, rightNext, leftNext, dumFreq, tekFreq, bpm, soloMode);
+    // Faz 0: UI hook
+    if (onScheduledEvent) onScheduledEvent(stepIndex, time, event, rightNext, leftNext);
+    nextNoteTime = time + (event.units * secondsPerBeat());
+    currentStep = (currentStep + 1) % pattern.length;
+  }
+}
+
+async function startTransport() {
+  if (audioCtx.state === "suspended") await audioCtx.resume();
+  currentStep = 0;
+  nextNoteTime = audioCtx.currentTime + TRANSPORT_START_DELAY;
+  cycleStartTime = nextNoteTime;
+  timerId = setInterval(scheduler, LOOKAHEAD_MS);
+  isPlaying = true;
+  document.body.dataset.playing = "true";
+  document.getElementById("toggle").textContent = "Dur";
+  startSweepAnimation();
+}
+
+function stopTransport() {
+  clearInterval(timerId);
+  timerId = null;
+  isPlaying = false;
+  document.body.dataset.playing = "false";
+  document.getElementById("toggle").textContent = "Çal";
+  stopSweepAnimation();
+}
+
+function restartTransportIfPlaying() {
+  if (!isPlaying) return;
+  gate.gain.setValueAtTime(0, audioCtx.currentTime);
+  stopTransport();
+  startTransport();
+  if (!(dumMuted && tekMuted)) gate.gain.setValueAtTime(1, audioCtx.currentTime);
+}
+
+// ── WAV Encoding ────────────────────────────────────────────────
+function interleaveStereo(left, right) {
+  const length = left.length + right.length;
+  const result = new Float32Array(length);
+  let index = 0, inputIndex = 0;
+  while (index < length) { result[index++] = left[inputIndex]; result[index++] = right[inputIndex]; inputIndex++; }
+  return result;
+}
+
+function encodeWavFromAudioBuffer(audioBuffer) {
+  const numChannels = audioBuffer.numberOfChannels;
+  const sampleRate = audioBuffer.sampleRate;
+  const bitDepth = 16;
+  const channelData = [];
+  for (let i = 0; i < numChannels; i++) channelData.push(audioBuffer.getChannelData(i));
+  const interleaved = numChannels === 2 ? interleaveStereo(channelData[0], channelData[1]) : channelData[0];
+  const blockAlign = numChannels * bitDepth / 8;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = interleaved.length * 2;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  function ws(o, s) { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); }
+  let o = 0;
+  ws(o,"RIFF");o+=4;view.setUint32(o,36+dataSize,true);o+=4;ws(o,"WAVE");o+=4;
+  ws(o,"fmt ");o+=4;view.setUint32(o,16,true);o+=4;view.setUint16(o,1,true);o+=2;
+  view.setUint16(o,numChannels,true);o+=2;view.setUint32(o,sampleRate,true);o+=4;
+  view.setUint32(o,byteRate,true);o+=4;view.setUint16(o,blockAlign,true);o+=2;
+  view.setUint16(o,bitDepth,true);o+=2;ws(o,"data");o+=4;view.setUint32(o,dataSize,true);o+=4;
+  let idx=44;
+  for(let i=0;i<interleaved.length;i++){
+    const sample=Math.max(-1,Math.min(1,interleaved[i]));
+    view.setInt16(idx,sample<0?sample*0x8000:sample*0x7FFF,true);idx+=2;
+  }
+  return new Blob([buffer],{type:"audio/wav"});
+}
+
+async function renderSelectedPatternToWav() {
+  const repeatInput=document.getElementById("repeatCount");
+  const renderStatus=document.getElementById("renderStatus");
+  const renderBtn=document.getElementById("renderWavBtn");
+  const repeatCount=clamp(Number(repeatInput.value)||1,REPEAT_MIN,REPEAT_MAX);
+  repeatInput.value=repeatCount;
+  const localBpm=bpm,localDumFreq=dumFreq,localTekFreq=tekFreq,localVolume=volume;
+  const localPattern=pattern,localUsulName=currentUsulName,localSoloMode=soloMode;
+  renderBtn.disabled=true;renderStatus.textContent="Oluşturuluyor…";
+  try{
+    const spb=secondsPerBeat(localBpm);
+    const patternCycleDuration=localPattern.reduce((sum,ev)=>sum+ev.units*spb,0);
+    const totalDuration=(repeatCount*patternCycleDuration)+RENDER_TAIL_SECONDS;
+    const offlineCtx=new OfflineAudioContext(2,Math.ceil(totalDuration*RENDER_SAMPLE_RATE),RENDER_SAMPLE_RATE);
+    const offlineMaster=offlineCtx.createGain();offlineMaster.gain.value=(localVolume/VOL_MAX)*MAX_MASTER_GAIN;
+    const offlineHP=offlineCtx.createBiquadFilter();offlineHP.type="highpass";offlineHP.frequency.value=HP_FREQ;
+    offlineMaster.connect(offlineHP);offlineHP.connect(offlineCtx.destination);
+    const offlineEngine=createEngine(offlineCtx,offlineMaster,noiseBuffer);
+    for(let r=0;r<repeatCount;r++){
+      const cycleOffset=r*patternCycleDuration;let stepOffset=0;
+      for(let i=0;i<localPattern.length;i++){
+        const event=localPattern[i];const time=cycleOffset+stepOffset;
+        const rightNext=getNextSameSideTime(i,time,"right",localPattern,localBpm);
+        const leftNext=getNextSameSideTime(i,time,"left",localPattern,localBpm);
+        dispatchEvent(offlineEngine,event,time,rightNext,leftNext,localDumFreq,localTekFreq,localBpm,localSoloMode);
+        stepOffset+=event.units*spb;
+      }
+    }
+    const renderedBuffer=await offlineCtx.startRendering();
+    const wavBlob=encodeWavFromAudioBuffer(renderedBuffer);
+    const safeUsulName=localUsulName.replace(/[^\p{L}\p{N}\s-]/gu,"").replace(/\s+/g,"_");
+    const soloSuffix=localSoloMode==="dum"?"_dumSolo":localSoloMode==="tek"?"_tekSolo":"";
+    const fileName=`${safeUsulName}_${localBpm}BPM_dum${localDumFreq}_tek${localTekFreq}_x${repeatCount}${soloSuffix}.wav`;
+    const url=URL.createObjectURL(wavBlob);
+    const a=document.createElement("a");a.href=url;a.download=fileName;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    renderStatus.textContent=`${fileName} oluşturuldu.`;
+  }catch(error){console.error(error);renderStatus.textContent="Kaydetme başarısız.";}
+  finally{renderBtn.disabled=false;}
+}
+
+// ══════════════════════════════════════════════════════════════════
+// UI / VISUALIZATION LAYER
+// ══════════════════════════════════════════════════════════════════
+
+// ── Color mapping for segment types ─────────────────────────────
+const SEGMENT_COLORS = {dum:"--dum",tek:"--tek",teke:"--teke",teka:"--teka",tekka:"--tekka",tahek:"--tahek"};
+
+function getSegColor(type) {
+  return getComputedStyle(document.body).getPropertyValue(SEGMENT_COLORS[type] || "--tek").trim();
+}
+
+// ── Compound Beat Detection ─────────────────────────────────────
+function baseLabel(lbl) { return lbl.replace(/[\d.½]+$/, ""); }
+
+function analyzePattern(events) {
+  const segments = [];
+  let i = 0;
+  while (i < events.length) {
+    const curr = events[i];
+    const cb = baseLabel(curr.label);
+    const next = events[i + 1];
+    const nb = next ? baseLabel(next.label) : null;
+
+    if (cb === "te" && nb === "ke" && curr.kind === "weakRight" && next.kind === "weakLeft") {
+      segments.push({ type:"teke", units:curr.units+next.units, events:[curr,next], startIdx:i });
+      i += 2;
+    } else if (cb === "te" && nb === "kâ" && curr.kind === "weakRight" && next.kind === "weakLeft") {
+      segments.push({ type:"teka", units:curr.units+next.units, events:[curr,next], startIdx:i });
+      i += 2;
+    } else if (cb === "tek" && nb === "kâ" && curr.kind === "weakRight" && next.kind === "weakLeft") {
+      segments.push({ type:"tekka", units:curr.units+next.units, events:[curr,next], startIdx:i });
+      i += 2;
+    } else if (cb === "ta" && nb === "hek" && next && next.kind === "bothWeak") {
+      segments.push({ type:"tahek", units:curr.units+next.units, events:[curr,next], startIdx:i });
+      i += 2;
+    } else if (curr.kind === "dum") {
+      segments.push({ type:"dum", units:curr.units, events:[curr], startIdx:i });
+      i++;
+    } else {
+      segments.push({ type:"tek", units:curr.units, events:[curr], startIdx:i });
+      i++;
+    }
+  }
+  return segments;
+}
+
+// Build a lookup: eventIndex → segmentIndex
+let eventToSegment = [];
+let visualSegments = [];
+let totalUnits = 0;
+
+function rebuildSegments() {
+  visualSegments = analyzePattern(pattern);
+  totalUnits = visualSegments.reduce((s, seg) => s + seg.units, 0);
+  eventToSegment = [];
+  visualSegments.forEach((seg, si) => {
+    seg.events.forEach((_, ei) => {
+      eventToSegment[seg.startIdx + ei] = si;
+    });
+  });
+}
+
+// ── SVG Pie Chart ───────────────────────────────────────────────
+function polarToCart(cx, cy, r, deg) {
+  const rad = (deg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function renderSegmentRing() {
+  const svg = document.getElementById("segmentRing");
+  svg.innerHTML = "";
+  const cx = 100, cy = 100, r = 95;
+  const GAP = 0.8;
+  const degPerUnit = 360 / totalUnits;
+  let startAngle = 0;
+
+  visualSegments.forEach((seg, i) => {
+    const sweep = seg.units * degPerUnit - GAP;
+    const endAngle = startAngle + sweep;
+    const largeArc = sweep > 180 ? 1 : 0;
+    const p1 = polarToCart(cx, cy, r, startAngle);
+    const p2 = polarToCart(cx, cy, r, endAngle);
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d",
+      `M${cx},${cy} L${p1.x.toFixed(2)},${p1.y.toFixed(2)} A${r},${r},0,${largeArc},1,${p2.x.toFixed(2)},${p2.y.toFixed(2)} Z`
+    );
+    path.setAttribute("fill", getSegColor(seg.type));
+    path.setAttribute("data-seg", i);
+    path.classList.add("seg-path");
+    svg.appendChild(path);
+
+    startAngle += seg.units * degPerUnit;
+  });
+}
+
+// ── Canvas Sweep Hand ───────────────────────────────────────────
+let sweepRafId = null;
+const sweepCanvas = document.getElementById("sweepCanvas");
+const sweepCtx = sweepCanvas.getContext("2d");
+
+function resizeSweepCanvas() {
+  const container = sweepCanvas.parentElement;
+  const w = container.clientWidth;
+  sweepCanvas.width = w * devicePixelRatio;
+  sweepCanvas.height = w * devicePixelRatio;
+  sweepCanvas.style.width = w + "px";
+  sweepCanvas.style.height = w + "px";
+}
+
+function drawSweep() {
+  if (!isPlaying) return;
+  const w = sweepCanvas.width, h = sweepCanvas.height;
+  const cx = w / 2, cy = h / 2, r = w * 0.475;
+  sweepCtx.clearRect(0, 0, w, h);
+
+  const cycleDuration = totalUnits * secondsPerBeat();
+  const elapsed = audioCtx.currentTime - cycleStartTime;
+  let progress = (elapsed % cycleDuration) / cycleDuration;
+  if (progress < 0) progress = 0;
+
+  // Reset cycle start when wrapping
+  if (elapsed > cycleDuration) {
+    const fullCycles = Math.floor(elapsed / cycleDuration);
+    cycleStartTime += fullCycles * cycleDuration;
+  }
+
+  const angle = progress * 2 * Math.PI - Math.PI / 2;
+  const ex = cx + r * Math.cos(angle);
+  const ey = cy + r * Math.sin(angle);
+
+  const vol = volume / VOL_MAX;
+
+  // Glow
+  if (vol > 0.1) {
+    sweepCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--sweep-glow").trim();
+    sweepCtx.lineWidth = (4 + vol * 6) * devicePixelRatio;
+    sweepCtx.lineCap = "round";
+    sweepCtx.beginPath();
+    sweepCtx.moveTo(cx, cy);
+    sweepCtx.lineTo(ex, ey);
+    sweepCtx.stroke();
+  }
+
+  // Main hand
+  sweepCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--sweep").trim();
+  sweepCtx.lineWidth = (1.5 + vol * 1.5) * devicePixelRatio;
+  sweepCtx.lineCap = "round";
+  sweepCtx.beginPath();
+  sweepCtx.moveTo(cx, cy);
+  sweepCtx.lineTo(ex, ey);
+  sweepCtx.stroke();
+
+  // Center dot
+  sweepCtx.fillStyle = sweepCtx.strokeStyle;
+  sweepCtx.beginPath();
+  sweepCtx.arc(cx, cy, 3 * devicePixelRatio, 0, Math.PI * 2);
+  sweepCtx.fill();
+
+  // Update active beat label (karaoke)
+  updateKaraokeHighlight(progress);
+
+  sweepRafId = requestAnimationFrame(drawSweep);
+}
+
+function startSweepAnimation() {
+  resizeSweepCanvas();
+  if (sweepRafId) cancelAnimationFrame(sweepRafId);
+  sweepRafId = requestAnimationFrame(drawSweep);
+}
+
+function stopSweepAnimation() {
+  if (sweepRafId) { cancelAnimationFrame(sweepRafId); sweepRafId = null; }
+  sweepCtx.clearRect(0, 0, sweepCanvas.width, sweepCanvas.height);
+  clearKaraokeHighlight();
+  // Reset hand guidance bars
+  leftBar.style.transform = "scaleY(0)";
+  rightBar.style.transform = "scaleY(0)";
+}
+
+// ── Segment Pulse ───────────────────────────────────────────────
+function pulseSegment(segIndex) {
+  const vol = volume / VOL_MAX;
+  if (vol < 0.05) return;
+  const path = document.querySelector(`.seg-path[data-seg="${segIndex}"]`);
+  if (!path) return;
+  const brightness = 1 + 0.4 * vol;
+  path.style.filter = `brightness(${brightness})`;
+  setTimeout(() => { path.style.filter = ""; }, 150);
+}
+
+// ── Hand Guidance Bars ──────────────────────────────────────────
+const leftBar = document.getElementById("leftBar");
+const rightBar = document.getElementById("rightBar");
+
+// Son sağ/sol segment birimlerini hatırla (retract hesabı için)
+let lastRightSegUnits = 1;
+let lastLeftSegUnits = 1;
+
+function triggerHandBar(event, audioTime, rightNextTime, leftNextTime, segUnits) {
+  const vol = volume / VOL_MAX;
+  if (vol < 0.05) return;
+  const delay = Math.max(0, (audioTime - audioCtx.currentTime) * 1000);
+  const color = getSegColor(event.kind === "dum" ? "dum" : "tek");
+  const spb = secondsPerBeat();
+
+  if (eventHasRightSide(event)) {
+    // Sonraki sağ vuruş aynı tarafta mı, karşıt tarafta mı?
+    const sameNext = rightNextTime <= leftNextTime;
+    const retractUnits = sameNext ? segUnits : lastLeftSegUnits;
+    const retractMs = Math.max(80, retractUnits * spb * 0.5 * 1000);
+    lastRightSegUnits = segUnits;
+    setTimeout(() => {
+      rightBar.style.background = color;
+      rightBar.style.transition = "transform 0.06s ease-out";
+      rightBar.style.transform = `scaleY(${vol})`;
+      setTimeout(() => {
+        rightBar.style.transition = `transform ${retractMs}ms linear`;
+        rightBar.style.transform = "scaleY(0)";
+      }, 60);
+    }, delay);
+  }
+
+  if (eventHasLeftSide(event)) {
+    const sameNext = leftNextTime <= rightNextTime;
+    const retractUnits = sameNext ? segUnits : lastRightSegUnits;
+    const retractMs = Math.max(80, retractUnits * spb * 0.5 * 1000);
+    lastLeftSegUnits = segUnits;
+    setTimeout(() => {
+      leftBar.style.background = color;
+      leftBar.style.transition = "transform 0.06s ease-out";
+      leftBar.style.transform = `scaleY(${vol})`;
+      setTimeout(() => {
+        leftBar.style.transition = `transform ${retractMs}ms linear`;
+        leftBar.style.transform = "scaleY(0)";
+      }, 60);
+    }, delay);
+  }
+}
+
+// ── Beat Labels ─────────────────────────────────────────────────
+let beatLabelSpans = [];
+
+function formatLabelDisplay(lbl) {
+  return lbl.replace(/0\.5/g, "½");
+}
+
+function buildBeatLabels() {
+  const container = document.getElementById("beatLabels");
+  container.innerHTML = "";
+  beatLabelSpans = [];
+  let eventIdx = 0;
+
+  pattern.forEach((ev, i) => {
+    if (i > 0) {
+      const sep = document.createElement("span");
+      sep.className = "sep";
+      sep.textContent = ", ";
+      container.appendChild(sep);
+    }
+    const span = document.createElement("span");
+    span.textContent = formatLabelDisplay(ev.label);
+    span.dataset.eventIdx = i;
+    const segIdx = eventToSegment[i];
+    if (segIdx !== undefined) {
+      span.style.color = getSegColor(visualSegments[segIdx].type);
+    }
+    container.appendChild(span);
+    beatLabelSpans.push(span);
+  });
+
+  // Dynamic font sizing
+  fitBeatLabels();
+
+}
+
+function fitBeatLabels() {
+  const container = document.getElementById("beatLabels");
+  const maxWidth = container.parentElement.clientWidth - 32;
+  let fontSize = 16;
+  container.style.fontSize = fontSize + "px";
+  while (container.scrollWidth > maxWidth && fontSize > 7) {
+    fontSize -= 0.5;
+    container.style.fontSize = fontSize + "px";
+  }
+}
+
+// ── Karaoke Highlight ───────────────────────────────────────────
+let lastActiveEventIdx = -1;
+
+function updateKaraokeHighlight(progress) {
+  // Find which event is active based on progress
+  let accumulated = 0;
+  let activeIdx = 0;
+  for (let i = 0; i < pattern.length; i++) {
+    const evPortion = pattern[i].units / totalUnits;
+    if (accumulated + evPortion > progress + 0.001) {
+      activeIdx = i;
+      break;
+    }
+    accumulated += evPortion;
+    if (i === pattern.length - 1) activeIdx = i;
+  }
+
+  if (activeIdx !== lastActiveEventIdx) {
+    if (lastActiveEventIdx >= 0 && beatLabelSpans[lastActiveEventIdx]) {
+      beatLabelSpans[lastActiveEventIdx].classList.remove("active");
+    }
+    if (beatLabelSpans[activeIdx]) {
+      beatLabelSpans[activeIdx].classList.add("active");
+    }
+    lastActiveEventIdx = activeIdx;
+  }
+}
+
+function clearKaraokeHighlight() {
+  beatLabelSpans.forEach(sp => sp.classList.remove("active"));
+  lastActiveEventIdx = -1;
+}
+
+// ── onScheduledEvent callback ───────────────────────────────────
+onScheduledEvent = function(stepIndex, audioTime, event, rightNext, leftNext) {
+  const segIdx = eventToSegment[stepIndex];
+  if (segIdx !== undefined) pulseSegment(segIdx);
+  const segUnits = segIdx !== undefined ? visualSegments[segIdx].units : event.units;
+  triggerHandBar(event, audioTime, rightNext, leftNext, segUnits);
+};
+
+// ── Carousel ────────────────────────────────────────────────────
+const carouselTrack = document.getElementById("carouselTrack");
+let carouselCards = [];
+let selectedCardIndex = 0;
+const usulNames = Object.keys(usulDefs);
+
+function buildCarousel() {
+  carouselTrack.innerHTML = "";
+  // Padding for centering first/last cards
+  const padL = document.createElement("div");
+  padL.style.cssText = "flex:0 0 calc(50% - 78px)";
+  carouselTrack.appendChild(padL);
+
+  usulNames.forEach((name, i) => {
+    const card = document.createElement("div");
+    card.className = "carousel-card" + (name === currentUsulName ? " active" : "");
+    card.dataset.usul = name;
+    card.dataset.idx = i;
+    card.innerHTML = `<span class="c-units">${getUsulUnitCount(name)}</span><span class="c-name">${name}</span>`;
+    card.addEventListener("click", () => selectCarouselCard(i));
+    carouselTrack.appendChild(card);
+  });
+
+  const padR = document.createElement("div");
+  padR.style.cssText = "flex:0 0 calc(50% - 78px)";
+  carouselTrack.appendChild(padR);
+
+  carouselCards = carouselTrack.querySelectorAll(".carousel-card");
+  selectedCardIndex = usulNames.indexOf(currentUsulName);
+  scrollToCard(selectedCardIndex, "auto");
+}
+
+function scrollToCard(idx, behavior = "smooth") {
+  idx = clamp(idx, 0, usulNames.length - 1);
+  const card = carouselCards[idx];
+  if (card) card.scrollIntoView({ behavior, inline: "center", block: "nearest" });
+}
+
+function selectCarouselCard(idx) {
+  idx = clamp(idx, 0, usulNames.length - 1);
+  if (idx === selectedCardIndex && usulNames[idx] === currentUsulName) return;
+  selectedCardIndex = idx;
+  carouselCards.forEach(c => c.classList.remove("active"));
+  carouselCards[idx].classList.add("active");
+  scrollToCard(idx);
+
+  currentUsulName = usulNames[idx];
+  pattern = usulDefs[currentUsulName];
+  currentStep = 0;
+  rebuildVisualization();
+  restartTransportIfPlaying();
+}
+
+// Carousel: arrow buttons
+document.getElementById("carPrev").addEventListener("click", () => selectCarouselCard(selectedCardIndex - 1));
+document.getElementById("carNext").addEventListener("click", () => selectCarouselCard(selectedCardIndex + 1));
+
+// Carousel: mouse wheel
+carouselTrack.addEventListener("wheel", e => {
+  e.preventDefault();
+  const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  if (delta > 0) selectCarouselCard(selectedCardIndex + 1);
+  else if (delta < 0) selectCarouselCard(selectedCardIndex - 1);
+}, { passive: false });
+
+// Carousel: drag (hasDragged ayırır tıklamayı sürüklemeden)
+let dragStartX = 0, dragScrollLeft = 0, isDragging = false, hasDragged = false;
+carouselTrack.addEventListener("pointerdown", e => {
+  isDragging = true;
+  hasDragged = false;
+  dragStartX = e.clientX;
+  dragScrollLeft = carouselTrack.scrollLeft;
+  carouselTrack.style.scrollBehavior = "auto";
+  carouselTrack.style.cursor = "grabbing";
+  carouselTrack.setPointerCapture(e.pointerId);
+});
+carouselTrack.addEventListener("pointermove", e => {
+  if (!isDragging) return;
+  const dx = e.clientX - dragStartX;
+  if (Math.abs(dx) > 4) hasDragged = true;
+  carouselTrack.scrollLeft = dragScrollLeft - dx;
+});
+carouselTrack.addEventListener("pointerup", e => {
+  if (!isDragging) return;
+  isDragging = false;
+  carouselTrack.style.scrollBehavior = "";
+  carouselTrack.style.cursor = "";
+  carouselTrack.releasePointerCapture(e.pointerId);
+  if (!hasDragged) {
+    // Tıklama: pointer'ın altındaki kartı bul
+    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest(".carousel-card");
+    if (el) { const idx = parseInt(el.dataset.idx); if (!isNaN(idx)) selectCarouselCard(idx); }
+    return;
+  }
+  // Sürükleme bitti: merkeze en yakın kartı yakala
+  const trackRect = carouselTrack.getBoundingClientRect();
+  const centerX = trackRect.left + trackRect.width / 2;
+  let closestIdx = 0, minDist = Infinity;
+  carouselCards.forEach((card, i) => {
+    const cardRect = card.getBoundingClientRect();
+    const dist = Math.abs(cardRect.left + cardRect.width / 2 - centerX);
+    if (dist < minDist) { minDist = dist; closestIdx = i; }
+  });
+  selectCarouselCard(closestIdx);
+});
+
+// ── Theme Toggle ────────────────────────────────────────────────
+function initTheme() {
+  const saved = localStorage.getItem("usulsayar-theme") || "dark";
+  document.body.dataset.theme = saved;
+  document.getElementById("themeToggle").textContent = saved === "dark" ? "☀" : "🌙";
+}
+
+document.getElementById("themeToggle").addEventListener("click", () => {
+  const next = document.body.dataset.theme === "dark" ? "light" : "dark";
+  document.body.dataset.theme = next;
+  localStorage.setItem("usulsayar-theme", next);
+  document.getElementById("themeToggle").textContent = next === "dark" ? "☀" : "🌙";
+  // Re-render segment colors
+  renderSegmentRing();
+  buildBeatLabels();
+});
+
+// ── Rebuild All Visuals ─────────────────────────────────────────
+function rebuildVisualization() {
+  rebuildSegments();
+  renderSegmentRing();
+  buildBeatLabels();
+  resizeSweepCanvas();
+}
+
+// ── Event Listeners ─────────────────────────────────────────────
+document.getElementById("toggle").addEventListener("click", async () => {
+  if (!isPlaying) await startTransport();
+  else stopTransport();
+});
+
+bindSliderSpinbox(bpmSlider, bpmNumber, setBpmValue);
+bindSliderSpinbox(dumSlider, dumNumber, setDumValue);
+bindSliderSpinbox(tekSlider, tekNumber, setTekValue);
+bindSliderSpinbox(volumeSlider, volumeNumber, setVolumeValue);
+
+// Mute toggles
+document.getElementById("dumMute").addEventListener("click", () => {
+  dumMuted = !dumMuted;
+  updateMuteState();
+});
+document.getElementById("tekMute").addEventListener("click", () => {
+  tekMuted = !tekMuted;
+  updateMuteState();
+});
+
+document.getElementById("repeatCount").addEventListener("input", e => {
+  e.target.value = clamp(Number(e.target.value) || 1, REPEAT_MIN, REPEAT_MAX);
+});
+document.getElementById("renderWavBtn").addEventListener("click", () => renderSelectedPatternToWav());
+
+// Resize handler
+window.addEventListener("resize", () => {
+  resizeSweepCanvas();
+  fitBeatLabels();
+});
+
+// ── Init ────────────────────────────────────────────────────────
+initTheme();
+setBpmValue(bpm);
+setDumValue(dumFreq);
+setTekValue(tekFreq);
+setVolumeValue(volume);
+buildCarousel();
+rebuildVisualization();
+// Defer canvas sizing to after layout settles
+requestAnimationFrame(() => resizeSweepCanvas());
+</script>
+</body>
+</html>
