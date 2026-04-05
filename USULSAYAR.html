@@ -81,11 +81,13 @@ body{
 .mute-btn[data-voice="dum"]{border-color:var(--dum);color:var(--dum)}
 .mute-btn[data-voice="tek"]{border-color:var(--tek);color:var(--tek)}
 .mute-btn[aria-pressed="true"]{opacity:.3;text-decoration:line-through}
-.theme-btn{
-  margin-left:auto;width:32px;height:32px;border:1px solid var(--border);
+.mode-group{margin-left:auto;display:flex;align-items:center;gap:6px}
+.disk-btn,.theme-btn{
+  width:32px;height:32px;border:1px solid var(--border);
   border-radius:50%;background:var(--bg3);color:var(--text);
   font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
 }
+.disk-btn[aria-pressed="true"]{border-color:var(--dum);color:var(--dum)}
 
 /* ── Hand Guidance ── */
 .hand-guide{
@@ -113,6 +115,7 @@ body{
 .sweep-canvas{pointer-events:none}
 [data-playing="false"] .sweep-canvas{opacity:0;transition:opacity .3s}
 [data-playing="true"] .sweep-canvas{opacity:1;transition:opacity .15s}
+.segment-ring{transform-origin:center;will-change:transform}
 .segment path{transition:filter .15s ease-out;stroke:var(--bg);stroke-width:.8}
 
 /* ── Beat Info ── */
@@ -225,7 +228,10 @@ body{
     <button class="mute-btn" id="tekMute" data-voice="tek" aria-pressed="false" aria-label="Tek sesini kapat">Tek</button>
   </div>
 
-  <button class="theme-btn" id="themeToggle" aria-label="Tema değiştir">☀</button>
+  <div class="mode-group">
+    <button class="disk-btn" id="diskToggle" aria-pressed="false" aria-label="Disk modu" title="Disk modu">&#9680;</button>
+    <button class="theme-btn" id="themeToggle" aria-label="Tema değiştir">☀</button>
+  </div>
 </header>
 
 <aside class="hand-guide hand-guide--left" aria-hidden="true">
@@ -387,6 +393,7 @@ let volume = VOL_MAX;
 let soloMode = "none";
 
 let isPlaying = false;
+let diskMode = false;
 let currentStep = 0;
 let nextNoteTime = 0;
 let timerId = null;
@@ -991,16 +998,55 @@ function drawSweep() {
     cycleStartTime += fullCycles * cycleDuration;
   }
 
-  const angle = progress * 2 * Math.PI - Math.PI / 2;
-  const ex = cx + r * Math.cos(angle);
-  const ey = cy + r * Math.sin(angle);
-
   const vol = volume / VOL_MAX;
 
-  // Glow
-  if (vol > 0.1) {
-    sweepCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--sweep-glow").trim();
-    sweepCtx.lineWidth = (4 + vol * 6) * devicePixelRatio;
+  if (diskMode) {
+    // Disk mode: rotate SVG, hand fixed at 12 o'clock
+    const svgEl = document.getElementById("segmentRing");
+    svgEl.style.transform = `rotate(${-progress * 360}deg)`;
+
+    const ex = cx;
+    const ey = cy - r;
+
+    // Glow
+    if (vol > 0.1) {
+      sweepCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--sweep-glow").trim();
+      sweepCtx.lineWidth = (4 + vol * 6) * devicePixelRatio;
+      sweepCtx.lineCap = "round";
+      sweepCtx.beginPath();
+      sweepCtx.moveTo(cx, cy);
+      sweepCtx.lineTo(ex, ey);
+      sweepCtx.stroke();
+    }
+
+    // Main hand
+    sweepCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--sweep").trim();
+    sweepCtx.lineWidth = (1.5 + vol * 1.5) * devicePixelRatio;
+    sweepCtx.lineCap = "round";
+    sweepCtx.beginPath();
+    sweepCtx.moveTo(cx, cy);
+    sweepCtx.lineTo(ex, ey);
+    sweepCtx.stroke();
+  } else {
+    // Normal mode: SVG fixed, hand rotates
+    const angle = progress * 2 * Math.PI - Math.PI / 2;
+    const ex = cx + r * Math.cos(angle);
+    const ey = cy + r * Math.sin(angle);
+
+    // Glow
+    if (vol > 0.1) {
+      sweepCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--sweep-glow").trim();
+      sweepCtx.lineWidth = (4 + vol * 6) * devicePixelRatio;
+      sweepCtx.lineCap = "round";
+      sweepCtx.beginPath();
+      sweepCtx.moveTo(cx, cy);
+      sweepCtx.lineTo(ex, ey);
+      sweepCtx.stroke();
+    }
+
+    // Main hand
+    sweepCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--sweep").trim();
+    sweepCtx.lineWidth = (1.5 + vol * 1.5) * devicePixelRatio;
     sweepCtx.lineCap = "round";
     sweepCtx.beginPath();
     sweepCtx.moveTo(cx, cy);
@@ -1008,17 +1054,8 @@ function drawSweep() {
     sweepCtx.stroke();
   }
 
-  // Main hand
-  sweepCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--sweep").trim();
-  sweepCtx.lineWidth = (1.5 + vol * 1.5) * devicePixelRatio;
-  sweepCtx.lineCap = "round";
-  sweepCtx.beginPath();
-  sweepCtx.moveTo(cx, cy);
-  sweepCtx.lineTo(ex, ey);
-  sweepCtx.stroke();
-
   // Center dot
-  sweepCtx.fillStyle = sweepCtx.strokeStyle;
+  sweepCtx.fillStyle = getComputedStyle(document.body).getPropertyValue("--sweep").trim();
   sweepCtx.beginPath();
   sweepCtx.arc(cx, cy, 3 * devicePixelRatio, 0, Math.PI * 2);
   sweepCtx.fill();
@@ -1042,6 +1079,8 @@ function stopSweepAnimation() {
   // Reset hand guidance bars
   leftBar.style.transform = "scaleY(0)";
   rightBar.style.transform = "scaleY(0)";
+  // Reset disk rotation
+  document.getElementById("segmentRing").style.transform = "";
 }
 
 // ── Segment Pulse ───────────────────────────────────────────────
@@ -1296,6 +1335,16 @@ carouselTrack.addEventListener("pointerup", e => {
     if (dist < minDist) { minDist = dist; closestIdx = i; }
   });
   selectCarouselCard(closestIdx);
+});
+
+// ── Disk Mode Toggle ────────────────────────────────────────────
+const diskToggleBtn = document.getElementById("diskToggle");
+diskToggleBtn.addEventListener("click", () => {
+  diskMode = !diskMode;
+  diskToggleBtn.setAttribute("aria-pressed", diskMode);
+  if (!diskMode) {
+    document.getElementById("segmentRing").style.transform = "";
+  }
 });
 
 // ── Theme Toggle ────────────────────────────────────────────────
