@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "usulsayar",
-      "runtimeExecutable": "C:\\Users\\vord0\\AppData\\Local\\ms-playwright-go\\1.50.1\\node.exe",
-      "runtimeArgs": ["serve.js"],
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8090"],
       "port": 8090,
       "autoPort": true
     }
