@@ -74,6 +74,14 @@ body{
   width:50px;padding:2px 4px;font-size:12px;text-align:center;
   background:var(--ctrl-bg);color:var(--text);border:1px solid var(--border);border-radius:4px;
 }
+.bpm-step-btn{
+  width:28px;height:28px;border:1px solid var(--border);border-radius:50%;
+  background:var(--bg3);color:var(--text);font-size:16px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .15s;flex-shrink:0;
+}
+.bpm-step-btn:active{background:var(--ctrl-track)}
+.repeat-step-btn{width:22px;height:22px;font-size:13px}
 .mute-group{display:flex;gap:6px;margin-left:4px}
 .mute-btn{
   padding:4px 12px;border:2px solid;border-radius:14px;
@@ -199,35 +207,35 @@ body{
 <body data-theme="dark" data-playing="false">
 
 <header class="controls">
-  <button id="toggle" class="btn-play">Çal</button>
+  <button id="toggle" class="btn-play">ÇAL</button>
 
-  <div class="slider-group">
-    <label for="bpm">Hız (BPM)</label>
-    <input id="bpm" type="range" min="33" max="333" value="120"/>
+  <div class="slider-group bpm-group">
+    <label>HIZ (BPM)</label>
+    <button class="bpm-step-btn" id="bpmDec" aria-label="BPM azalt">−</button>
     <input id="bpmNumber" class="spinbox" type="number" min="33" max="333" step="1" value="120"/>
+    <button class="bpm-step-btn" id="bpmInc" aria-label="BPM artır">+</button>
   </div>
 
   <div class="slider-group">
-    <label for="dumFreq">Düm (Hz)</label>
+    <label for="dumFreq">DÜM (Hz)</label>
     <input id="dumFreq" type="range" min="77" max="164" value="140"/>
     <input id="dumFreqNumber" class="spinbox" type="number" min="77" max="164" step="1" value="140"/>
   </div>
 
   <div class="slider-group">
-    <label for="tekFreq">Tek (Hz)</label>
+    <label for="tekFreq">TEK (Hz)</label>
     <input id="tekFreq" type="range" min="77" max="164" value="141"/>
     <input id="tekFreqNumber" class="spinbox" type="number" min="77" max="164" step="1" value="141"/>
   </div>
 
   <div class="slider-group">
-    <label for="volume">Ses (%)</label>
+    <label for="volume">SES (%)</label>
     <input id="volume" type="range" min="0" max="100" value="100"/>
-    <input id="volumeNumber" class="spinbox" type="number" min="0" max="100" step="1" value="100"/>
   </div>
 
   <div class="mute-group">
-    <button class="mute-btn" id="dumMute" data-voice="dum" aria-pressed="false" aria-label="Düm sesini kapat">Düm</button>
-    <button class="mute-btn" id="tekMute" data-voice="tek" aria-pressed="false" aria-label="Tek sesini kapat">Tek</button>
+    <button class="mute-btn" id="tekMute" data-voice="tek" aria-pressed="false" aria-label="TEK sesini kapat">TEK</button>
+    <button class="mute-btn" id="dumMute" data-voice="dum" aria-pressed="false" aria-label="DÜM sesini kapat">DÜM</button>
   </div>
 
   <div class="mode-group">
@@ -265,9 +273,11 @@ body{
 
 <footer class="app-footer">
   <div class="render-row">
-    <span>Tekrar</span>
+    <span>TEKRAR</span>
+    <button class="bpm-step-btn repeat-step-btn" id="repeatDec" aria-label="Tekrar azalt">−</button>
     <input id="repeatCount" type="number" min="1" max="111" value="1"/>
-    <button id="renderWavBtn" class="btn-save" aria-label="WAV olarak kaydet">&#9660; Kaydet</button>
+    <button class="bpm-step-btn repeat-step-btn" id="repeatInc" aria-label="Tekrar artır">+</button>
+    <button id="renderWavBtn" class="btn-save" aria-label="WAV olarak kaydet">&#9660; KAYDET</button>
     <span class="render-status" id="renderStatus"></span>
   </div>
   <div class="footer-right">
@@ -434,14 +444,12 @@ function getTekEnvProfile(localBpm) {
 const noiseBuffer = createNoiseBuffer(audioCtx, NOISE_DURATION);
 
 // ── DOM References ──────────────────────────────────────────────
-const bpmSlider = document.getElementById("bpm");
 const bpmNumber = document.getElementById("bpmNumber");
 const dumSlider = document.getElementById("dumFreq");
 const dumNumber = document.getElementById("dumFreqNumber");
 const tekSlider = document.getElementById("tekFreq");
 const tekNumber = document.getElementById("tekFreqNumber");
 const volumeSlider = document.getElementById("volume");
-const volumeNumber = document.getElementById("volumeNumber");
 
 // ── Utility Functions ───────────────────────────────────────────
 function clamp(x, min, max) { return Math.max(min, Math.min(max, x)); }
@@ -472,7 +480,7 @@ function enforceFreqOrder() {
 function setBpmValue(value) {
   const oldBpm = bpm;
   bpm = clamp(Number(value) || BPM_DEFAULT, BPM_MIN, BPM_MAX);
-  syncUI(bpmSlider, bpmNumber, null, bpm);
+  bpmNumber.value = bpm;
   if (isPlaying && oldBpm !== bpm) resyncAfterBpmChange(oldBpm, bpm);
 }
 function resyncAfterBpmChange(oldBpm, newBpm) {
@@ -493,7 +501,7 @@ function resyncAfterBpmChange(oldBpm, newBpm) {
 }
 function setVolumeValue(value) {
   volume = clamp(Number(value) || 0, VOL_MIN, VOL_MAX);
-  syncUI(volumeSlider, volumeNumber, null, volume);
+  volumeSlider.value = volume;
   updateMasterVolume();
 }
 function setDumValue(value) {
@@ -774,7 +782,7 @@ async function startTransport() {
   timerId = setInterval(scheduler, LOOKAHEAD_MS);
   isPlaying = true;
   document.body.dataset.playing = "true";
-  document.getElementById("toggle").textContent = "Dur";
+  document.getElementById("toggle").textContent = "DUR";
   startSweepAnimation();
 }
 
@@ -783,7 +791,7 @@ function stopTransport() {
   timerId = null;
   isPlaying = false;
   document.body.dataset.playing = "false";
-  document.getElementById("toggle").textContent = "Çal";
+  document.getElementById("toggle").textContent = "ÇAL";
   stopSweepAnimation();
 }
 
@@ -863,7 +871,7 @@ async function renderSelectedPatternToWav() {
     const wavBlob=encodeWavFromAudioBuffer(renderedBuffer);
     const safeUsulName=localUsulName.replace(/[^\p{L}\p{N}\s-]/gu,"").replace(/\s+/g,"_");
     const soloSuffix=localSoloMode==="dum"?"_dumSolo":localSoloMode==="tek"?"_tekSolo":"";
-    const fileName=`${safeUsulName}_${localBpm}BPM_dum${localDumFreq}_tek${localTekFreq}_x${repeatCount}${soloSuffix}.wav`;
+    const fileName=`${safeUsulName}_${localBpm}BPM_dum${localDumFreq}Hz_tek${localTekFreq}Hz_x${repeatCount}${soloSuffix}.wav`;
     const url=URL.createObjectURL(wavBlob);
     const a=document.createElement("a");a.href=url;a.download=fileName;
     document.body.appendChild(a);a.click();a.remove();
@@ -1380,10 +1388,13 @@ document.getElementById("toggle").addEventListener("click", async () => {
   else stopTransport();
 });
 
-bindSliderSpinbox(bpmSlider, bpmNumber, setBpmValue);
+bpmNumber.addEventListener("input", e => setBpmValue(e.target.value));
+bpmNumber.addEventListener("change", e => setBpmValue(e.target.value));
+document.getElementById("bpmDec").addEventListener("click", () => setBpmValue(bpm - 1));
+document.getElementById("bpmInc").addEventListener("click", () => setBpmValue(bpm + 1));
 bindSliderSpinbox(dumSlider, dumNumber, setDumValue);
 bindSliderSpinbox(tekSlider, tekNumber, setTekValue);
-bindSliderSpinbox(volumeSlider, volumeNumber, setVolumeValue);
+volumeSlider.addEventListener("input", e => setVolumeValue(e.target.value));
 
 // Mute toggles
 document.getElementById("dumMute").addEventListener("click", () => {
@@ -1398,7 +1409,29 @@ document.getElementById("tekMute").addEventListener("click", () => {
 document.getElementById("repeatCount").addEventListener("input", e => {
   e.target.value = clamp(Number(e.target.value) || 1, REPEAT_MIN, REPEAT_MAX);
 });
+document.getElementById("repeatDec").addEventListener("click", () => {
+  const el = document.getElementById("repeatCount");
+  el.value = clamp(Number(el.value) - 1, REPEAT_MIN, REPEAT_MAX);
+});
+document.getElementById("repeatInc").addEventListener("click", () => {
+  const el = document.getElementById("repeatCount");
+  el.value = clamp(Number(el.value) + 1, REPEAT_MIN, REPEAT_MAX);
+});
 document.getElementById("renderWavBtn").addEventListener("click", () => renderSelectedPatternToWav());
+
+// Scroll on sliders
+function addScrollHandler(el, setter, getter, step) {
+  el.addEventListener("wheel", e => { e.preventDefault(); setter(getter() + (e.deltaY < 0 ? step : -step)); }, {passive:false});
+}
+addScrollHandler(dumSlider, setDumValue, () => dumFreq, 1);
+addScrollHandler(tekSlider, setTekValue, () => tekFreq, 1);
+addScrollHandler(volumeSlider, setVolumeValue, () => volume, 2);
+bpmNumber.addEventListener("wheel", e => { e.preventDefault(); setBpmValue(bpm + (e.deltaY < 0 ? 1 : -1)); }, {passive:false});
+document.getElementById("repeatCount").addEventListener("wheel", e => {
+  e.preventDefault();
+  const el = e.target;
+  el.value = clamp(Number(el.value) + (e.deltaY < 0 ? 1 : -1), REPEAT_MIN, REPEAT_MAX);
+}, {passive:false});
 
 // Resize handler
 window.addEventListener("resize", () => {
