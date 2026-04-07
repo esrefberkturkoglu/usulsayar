@@ -58,9 +58,11 @@ body{
 [data-playing="true"] .btn-play{background:#666}
 .slider-group{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
 .slider-group label{width:62px;text-align:right;flex-shrink:0}
-#bpmLabel,#tekMute{text-align:left}
+#tekMute{text-align:left}
+.icon-group{position:relative}
+.group-icon{font-size:18px;opacity:.7;flex-shrink:0}
 .slider-group input[type="range"]{
-  -webkit-appearance:none;appearance:none;width:110px;height:6px;
+  -webkit-appearance:none;appearance:none;width:136px;height:6px;
   background:var(--ctrl-track);border-radius:3px;outline:none;cursor:pointer;
 }
 .slider-group input[type="range"]::-webkit-slider-thumb{
@@ -71,10 +73,14 @@ body{
   width:14px;height:14px;border-radius:50%;border:none;
   background:var(--ctrl-thumb);cursor:pointer;
 }
+.spinbox-wrap{position:relative;display:inline-flex;align-items:center}
 .spinbox{
-  width:50px;padding:2px 4px;font-size:12px;text-align:center;
+  width:68px;padding:2px 26px 2px 4px;font-size:12px;text-align:center;
   background:var(--ctrl-bg);color:var(--text);border:1px solid var(--border);border-radius:4px;
 }
+.spinbox::-webkit-inner-spin-button,.spinbox::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.spinbox{-moz-appearance:textfield}
+.spinbox-unit{position:absolute;right:5px;font-size:9px;color:var(--text3);pointer-events:none}
 .bpm-step-btn{
   width:28px;height:28px;border:1px solid var(--border);border-radius:50%;
   background:var(--bg3);color:var(--text);font-size:16px;font-weight:700;
@@ -125,6 +131,7 @@ body{
 [data-playing="false"] .seg-path{cursor:pointer}
 [data-playing="false"] .seg-path:hover{filter:brightness(1.25)}
 [data-playing="false"] .seg-path:active{filter:brightness(.85)}
+.seg-locked{pointer-events:none}
 .segment path{transition:filter .15s ease-out;stroke:var(--bg);stroke-width:.8}
 
 /* ── Beat Info ── */
@@ -184,55 +191,56 @@ body{
 .app-footer{
   grid-area:foot;padding:6px 14px;background:var(--bg2);
   border-top:1px solid var(--border);font-size:11px;color:var(--text3);
-  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:8px;
 }
+.footer-left{flex:1;text-align:left;white-space:nowrap}
+.footer-left a{color:var(--dum);text-decoration:none}
+.footer-left a:hover{text-decoration:underline}
+.footer-left a:active{color:var(--tek)}
+.footer-center{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
 .render-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.render-row input[type="number"]{
-  width:48px;padding:2px 4px;font-size:12px;text-align:center;
-  background:var(--ctrl-bg);color:var(--text);border:1px solid var(--border);border-radius:4px;
-}
+#repeatCount{width:76px;padding-right:40px}
 .btn-save{
   padding:4px 12px;border:1px solid var(--border);border-radius:4px;
   background:var(--bg3);color:var(--text);font-size:12px;cursor:pointer;
 }
 .btn-save:hover{border-color:var(--text2)}
 .render-status{font-size:11px;color:var(--text2)}
-.footer-right{margin-left:auto;text-align:right;line-height:1.5}
-.footer-right a{color:var(--dum);text-decoration:none}
+.footer-right{flex:1;text-align:right;white-space:nowrap}
+.footer-right a{color:var(--tek);text-decoration:none}
 .footer-right a:hover{text-decoration:underline}
-.footer-right a:active{color:var(--tek)}
-.headphone-note{font-size:10px;color:var(--text3);font-style:italic}
+.footer-right a:active{color:var(--dum)}
 </style>
 </head>
 <body data-theme="dark" data-playing="false">
 
 <header class="controls">
-  <div class="slider-group bpm-group">
-    <label id="bpmLabel">HIZ (BPM)</label>
+  <div class="slider-group bpm-group icon-group" id="bpmGroup">
     <button class="bpm-step-btn" id="bpmDec" aria-label="BPM azalt">−</button>
-    <input id="bpmNumber" class="spinbox" type="number" min="33" max="333" step="1" value="120"/>
+    <span class="spinbox-wrap"><input id="bpmNumber" class="spinbox" type="number" min="33" max="333" step="1" value="120"/><span class="spinbox-unit">BPM</span></span>
     <button class="bpm-step-btn" id="bpmInc" aria-label="BPM artır">+</button>
+    <span class="group-icon">&#9200;</span>
   </div>
 
   <div class="slider-group bpm-group">
     <button class="bpm-step-btn" id="tekDec" aria-label="Tek frekans azalt">−</button>
-    <input id="tekFreqNumber" class="spinbox" type="number" min="77" max="164" step="1" value="141"/>
+    <span class="spinbox-wrap"><input id="tekFreqNumber" class="spinbox" type="number" min="77" max="164" step="1" value="141"/><span class="spinbox-unit">Hz</span></span>
     <button class="bpm-step-btn" id="tekInc" aria-label="Tek frekans artır">+</button>
-    <label class="mute-label" id="tekMute" data-voice="tek" aria-pressed="false" role="button" tabindex="0">TEK (Hz)</label>
+    <label class="mute-label" id="tekMute" data-voice="tek" aria-pressed="false" role="button" tabindex="0">TEK</label>
   </div>
 
   <button id="toggle" class="btn-play">VUR</button>
 
   <div class="slider-group bpm-group">
-    <label class="mute-label" id="dumMute" data-voice="dum" aria-pressed="false" role="button" tabindex="0">DÜM (Hz)</label>
+    <label class="mute-label" id="dumMute" data-voice="dum" aria-pressed="false" role="button" tabindex="0">DÜM</label>
     <button class="bpm-step-btn" id="dumDec" aria-label="Düm frekans azalt">−</button>
-    <input id="dumFreqNumber" class="spinbox" type="number" min="77" max="164" step="1" value="140"/>
+    <span class="spinbox-wrap"><input id="dumFreqNumber" class="spinbox" type="number" min="77" max="164" step="1" value="140"/><span class="spinbox-unit">Hz</span></span>
     <button class="bpm-step-btn" id="dumInc" aria-label="Düm frekans artır">+</button>
   </div>
 
-  <div class="slider-group">
+  <div class="slider-group icon-group" id="volumeGroup">
+    <span class="group-icon" id="volumeIcon">&#128266;</span>
     <input id="volume" type="range" min="0" max="100" value="100"/>
-    <label for="volume">SES (%)</label>
   </div>
 </header>
 
@@ -264,22 +272,21 @@ body{
 </nav>
 
 <footer class="app-footer">
-  <div class="render-row">
-    <span>TEKRAR</span>
-    <button class="bpm-step-btn repeat-step-btn" id="repeatDec" aria-label="Tekrar azalt">−</button>
-    <input id="repeatCount" type="number" min="1" max="111" value="1"/>
-    <button class="bpm-step-btn repeat-step-btn" id="repeatInc" aria-label="Tekrar artır">+</button>
-    <button id="renderWavBtn" class="btn-save" aria-label="WAV olarak kaydet">&#9660; KAYDET</button>
-    <span class="render-status" id="renderStatus"></span>
+  <div class="footer-left">&copy; 2026 <a href="https://esrefberkturkoglu.com" target="_blank" rel="noopener">Eşref Berk Türkoğlu</a></div>
+  <div class="footer-center">
+    <div class="render-row">
+      <button class="bpm-step-btn repeat-step-btn" id="repeatDec" aria-label="Tekrar azalt">−</button>
+      <span class="spinbox-wrap"><input id="repeatCount" class="spinbox" type="number" min="1" max="111" value="1"/><span class="spinbox-unit">TEKRAR</span></span>
+      <button class="bpm-step-btn repeat-step-btn" id="repeatInc" aria-label="Tekrar artır">+</button>
+      <button id="renderWavBtn" class="btn-save" aria-label="WAV olarak kaydet">&#9660; KAYDET</button>
+      <span class="render-status" id="renderStatus"></span>
+    </div>
+    <div class="mode-group">
+      <button class="disk-btn" id="diskToggle" aria-pressed="false" aria-label="Disk modu" title="Disk modu">&#9680;</button>
+      <button class="theme-btn" id="themeToggle" aria-label="Tema değiştir">☀</button>
+    </div>
   </div>
-  <div class="mode-group">
-    <button class="disk-btn" id="diskToggle" aria-pressed="false" aria-label="Disk modu" title="Disk modu">&#9680;</button>
-    <button class="theme-btn" id="themeToggle" aria-label="Tema değiştir">☀</button>
-  </div>
-  <div class="footer-right">
-    <div><a href="https://esrefberkturkoglu.com" target="_blank" rel="noopener">Eşref Berk Türkoğlu</a></div>
-    <div class="headphone-note">Etkili öğrenim için kulaklık kullanımı veya optimal bir stereo dinleme deneyimi şarttır.</div>
-  </div>
+  <div class="footer-right"><a href="https://github.com/esrefberkturkoglu/usulsayar" target="_blank" rel="noopener">&#9741; GitHub</a></div>
 </footer>
 
 <script>
@@ -493,10 +500,31 @@ function resyncAfterBpmChange(oldBpm, newBpm) {
     nextNoteTime = now + remaining * (oldBpm / newBpm);
   }
 }
+let volumeBeforeMute = 100;
+function updateVolumeIcon() {
+  const el = document.getElementById("volumeIcon");
+  if (!el) return;
+  if ((dumMuted && tekMuted) || volume === 0) el.textContent = "\u{1F507}";
+  else if (volume <= 32) el.textContent = "\u{1F508}";
+  else if (volume <= 65) el.textContent = "\u{1F509}";
+  else el.textContent = "\u{1F50A}";
+  el.style.cursor = "pointer";
+}
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("volumeIcon").addEventListener("click", () => {
+    if (volume > 0) {
+      volumeBeforeMute = volume;
+      setVolumeValue(0);
+    } else {
+      setVolumeValue(volumeBeforeMute || 100);
+    }
+  });
+});
 function setVolumeValue(value) {
   volume = clamp(Number(value) || 0, VOL_MIN, VOL_MAX);
   volumeSlider.value = volume;
   updateMasterVolume();
+  updateVolumeIcon();
 }
 function setDumValue(value) {
   dumFreq = clamp(Number(value) || FREQ_MIN, FREQ_MIN, FREQ_MAX);
@@ -653,6 +681,7 @@ function updateMuteState() {
   }
   document.getElementById("dumMute").setAttribute("aria-pressed", String(dumMuted));
   document.getElementById("tekMute").setAttribute("aria-pressed", String(tekMuted));
+  updateVolumeIcon();
 }
 
 // ── Live Engine Instance ────────────────────────────────────────
@@ -1022,8 +1051,10 @@ document.getElementById("segmentRing").addEventListener("click", e => {
   const evIdx0 = seg.startIdx;
   const totalMs = seg.units * spb * 1000;
 
+  const ring = document.getElementById("segmentRing");
   segClickLocked = true;
-  setTimeout(() => { segClickLocked = false; }, totalMs);
+  ring.classList.add("seg-locked");
+  setTimeout(() => { segClickLocked = false; ring.classList.remove("seg-locked"); }, totalMs);
 
   function clickPlayEvent(ev, time, nextTime) {
     if (ev.kind === "dum") liveEngine.playDum(time, nextTime, dumFreq, bpm, 1.0);
