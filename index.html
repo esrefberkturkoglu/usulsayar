@@ -103,6 +103,8 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 .group-icon{font-size:18px;opacity:.7;flex-shrink:0}
 @keyframes bpm-pulse{0%{transform:scale(1)}15%{transform:scale(1.35)}100%{transform:scale(1)}}
 #bpmIcon.pulse{animation:bpm-pulse .25s ease-out}
+@keyframes ring-pulse{0%{transform:scale(1)}15%{transform:scale(1.04)}100%{transform:scale(1)}}
+.viz-container.ring-pulse{animation:ring-pulse .25s ease-out}
 .slider-group input[type="range"]{
   -webkit-appearance:none;appearance:none;width:136px;height:6px;
   background:var(--ctrl-track);border-radius:3px;outline:none;cursor:pointer;
@@ -209,7 +211,7 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 .carousel{
   grid-area:car;display:flex;align-items:center;justify-content:center;
   background:var(--bg2);border-top:1px solid var(--border);
-  padding:2px 0;gap:0;height:45px;
+  padding:2px 0;gap:0;height:60px;
 }
 .carousel-inner{
   display:flex;align-items:center;
@@ -224,7 +226,7 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 .carousel-arrow:hover{color:var(--text)}
 .carousel-track{
   flex:1;overflow-x:auto;scroll-snap-type:x mandatory;
-  display:flex;gap:6px;align-items:center;
+  display:flex;gap:6px;align-items:stretch;
   scrollbar-width:none;-ms-overflow-style:none;
   scroll-behavior:auto;
   max-width:732px;height:100%;
@@ -232,12 +234,21 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 .carousel-track::-webkit-scrollbar{display:none}
 .carousel-card{
   flex:0 0 120px;scroll-snap-align:center;
-  padding:2px 6px;border-radius:6px;text-align:center;
+  padding:6px 8px;border-radius:6px;text-align:center;
   cursor:pointer;transition:all .2s;
   border:1.5px solid transparent;background:var(--bg3);
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
 }
-.carousel-card .c-units{font-size:8px;color:var(--text3);display:block;line-height:1.1}
-.carousel-card .c-name{font-size:11px;font-weight:600;color:var(--text2);line-height:1.2}
+.carousel-card .c-units{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:44px;font-weight:900;opacity:.14;
+  line-height:1;pointer-events:none;
+  color:var(--text);letter-spacing:-2px;
+}
+.carousel-card .c-name{font-size:16px;font-weight:600;color:var(--text2);line-height:1.3;position:relative;white-space:pre-line}
+.carousel-card:hover .c-units{opacity:1;font-size:36px;letter-spacing:-1px}
+.carousel-card:hover .c-name{opacity:.12;transition:opacity .2s}
 .carousel-card.active{border-color:var(--dum);background:var(--bg2)}
 .carousel-card.active .c-name{color:var(--text)}
 
@@ -344,8 +355,8 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
   </div>
   <div class="render-row" id="renderPanel">
     <button class="bpm-step-btn repeat-step-btn" id="repeatDec" aria-label="Tekrar azalt">−</button>
-    <span class="spinbox-wrap"><input id="repeatCount" class="spinbox" type="number" min="1" max="111" value="1"/><span class="spinbox-unit">TEKRAR</span></span>
     <button class="bpm-step-btn repeat-step-btn" id="repeatInc" aria-label="Tekrar artır">+</button>
+    <span class="spinbox-wrap"><input id="repeatCount" class="spinbox" type="number" min="1" max="111" value="1"/><span class="spinbox-unit">TEKRAR</span></span>
     <button id="renderWavBtn" class="btn-save" aria-label="WAV olarak kaydet">&#9660; KAYDET</button>
     <span class="render-status" id="renderStatus"></span>
   </div>
@@ -553,6 +564,7 @@ let bpmPulseTimer = null;
 let bpmPulsePaused = false;
 function startBpmPulse() {
   if (bpmPulseTimer) clearInterval(bpmPulseTimer);
+  if (isPlaying) return; // ring pulse handled by onScheduledEvent
   const icon = document.getElementById("bpmIcon");
   if (!icon) return;
   const ms = 60000 / bpm;
@@ -564,6 +576,12 @@ function startBpmPulse() {
   }
   pulse();
   bpmPulseTimer = setInterval(pulse, ms);
+}
+function pulseRing() {
+  const vc = document.querySelector(".viz-container");
+  vc.classList.remove("ring-pulse");
+  void vc.offsetWidth;
+  vc.classList.add("ring-pulse");
 }
 
 // Tap-tempo state
@@ -921,6 +939,7 @@ async function startTransport() {
   document.body.dataset.playing = "true";
   document.getElementById("toggle").textContent = "DUR";
   fitBeatLabels();
+  startBpmPulse();
   startSweepAnimation();
 }
 
@@ -932,6 +951,8 @@ function stopTransport() {
   document.getElementById("toggle").textContent = "VUR";
   stopSweepAnimation();
   fitBeatLabels();
+  startBpmPulse();
+  document.querySelector(".viz-container").classList.remove("ring-pulse");
 }
 
 function restartTransportIfPlaying() {
@@ -1170,7 +1191,11 @@ document.getElementById("segmentRing").addEventListener("click", e => {
   const ring = document.getElementById("segmentRing");
   segClickLocked = true;
   ring.classList.add("seg-locked");
-  setTimeout(() => { segClickLocked = false; ring.classList.remove("seg-locked"); }, totalMs);
+  bpmPulsePaused = true;
+  for (let u = 0; u < Math.floor(seg.units); u++) {
+    setTimeout(pulseRing, u * spb * 1000);
+  }
+  setTimeout(() => { segClickLocked = false; ring.classList.remove("seg-locked"); bpmPulsePaused = false; }, totalMs);
 
   function clickPlayEvent(ev, time, nextTime) {
     if (ev.kind === "dum") liveEngine.playDum(time, nextTime, dumFreq, bpm, 1.0);
@@ -1512,6 +1537,12 @@ function clearKaraokeHighlight() {
 onScheduledEvent = function(stepIndex, audioTime, event, rightNext, leftNext) {
   const segIdx = eventToSegment[stepIndex];
   if (segIdx !== undefined) pulseSegment(segIdx);
+  const delayMs = Math.max(0, (audioTime - audioCtx.currentTime) * 1000);
+  const spbMs = secondsPerBeat() * 1000;
+  const wholeBeats = Math.floor(event.units);
+  for (let u = 0; u < wholeBeats; u++) {
+    setTimeout(pulseRing, delayMs + u * spbMs);
+  }
   const segUnits = segIdx !== undefined ? visualSegments[segIdx].units : event.units;
   triggerHandBar(event, audioTime, rightNext, leftNext, segUnits);
 };
@@ -1534,7 +1565,9 @@ function buildCarousel() {
     card.className = "carousel-card" + (name === currentUsulName ? " active" : "");
     card.dataset.usul = name;
     card.dataset.idx = i;
-    card.innerHTML = `<span class="c-units">${getUsulUnitCount(name)}</span><span class="c-name">${name}</span>`;
+    const displayName = name.replace(/^(Şarkı|Bektaşi|Ayin)\s(?=Devr-i)/, "$1\n").replace(/^(Bektaşi)\s(Raksanı)$/, "$1\n$2");
+    const nameSpan = `<span class="c-name">${displayName}</span>`;
+    card.innerHTML = `<span class="c-units">${getUsulUnitCount(name)}</span>${nameSpan}`;
     card.addEventListener("click", () => selectCarouselCard(i));
     carouselTrack.appendChild(card);
   });
