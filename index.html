@@ -9,13 +9,13 @@
 <style>
 :root{
   --bg:#111;--bg2:#1a1a1a;--bg3:#252525;--text:#ddd;--text2:#888;--text3:#555;--border:#333;
-  --dum:#D55E00;--tek:#56B4E9;--teke:#CC79A7;--teka:#009E73;--tekka:#E69F00;--tahek:#0072B2;
+  --dum:#D55E00;--tek:#0072B2;--teke:#CC79A7;--teka:#009E73;--tekka:#E69F00;--tahek:#56B4E9;
   --sweep:rgba(255,255,255,.85);--sweep-glow:rgba(255,255,255,.2);
   --ctrl-bg:#222;--ctrl-thumb:#ccc;--ctrl-track:#444;
 }
 [data-theme="light"]{
   --bg:#f4f2ed;--bg2:#e8e5df;--bg3:#dbd8d2;--text:#222;--text2:#666;--text3:#999;--border:#ccc;
-  --dum:#B84E00;--tek:#3A8FC0;--teke:#A85A88;--teka:#007A5A;--tekka:#C08500;--tahek:#005A90;
+  --dum:#B84E00;--tek:#005A90;--teke:#A85A88;--teka:#007A5A;--tekka:#C08500;--tahek:#3A8FC0;
   --sweep:rgba(0,0,0,.75);--sweep-glow:rgba(0,0,0,.12);
   --ctrl-bg:#e0ddd7;--ctrl-thumb:#555;--ctrl-track:#bbb;
 }
@@ -45,7 +45,7 @@ body{
 
 /* ── Controls ── */
 .controls{
-  grid-area:ctrl;display:flex;align-items:center;gap:10px;
+  grid-area:ctrl;display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border);
   flex-wrap:wrap;z-index:10;
 }
@@ -58,6 +58,7 @@ body{
 [data-playing="true"] .btn-play{background:#666}
 .slider-group{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
 .slider-group label{width:62px;text-align:right;flex-shrink:0}
+#bpmLabel,#tekMute{text-align:left}
 .slider-group input[type="range"]{
   -webkit-appearance:none;appearance:none;width:110px;height:6px;
   background:var(--ctrl-track);border-radius:3px;outline:none;cursor:pointer;
@@ -82,16 +83,11 @@ body{
 }
 .bpm-step-btn:active{background:var(--ctrl-track)}
 .repeat-step-btn{width:22px;height:22px;font-size:13px}
-.mute-group{display:flex;gap:6px;margin-left:4px}
-.mute-btn{
-  padding:4px 12px;border:2px solid;border-radius:14px;
-  font-size:12px;font-weight:600;cursor:pointer;background:transparent;
-  transition:all .2s;
-}
-.mute-btn[data-voice="dum"]{border-color:var(--dum);color:var(--dum)}
-.mute-btn[data-voice="tek"]{border-color:var(--tek);color:var(--tek)}
-.mute-btn[aria-pressed="true"]{opacity:.3;text-decoration:line-through}
-.mode-group{margin-left:auto;display:flex;align-items:center;gap:6px}
+.mute-label{cursor:pointer;user-select:none;transition:opacity .2s}
+.mute-label[data-voice="dum"]{color:var(--dum)}
+.mute-label[data-voice="tek"]{color:var(--tek)}
+.mute-label[aria-pressed="true"]{opacity:.3;text-decoration:line-through}
+.mode-group{display:flex;align-items:center;gap:6px}
 .disk-btn,.theme-btn{
   width:32px;height:32px;border:1px solid var(--border);
   border-radius:50%;background:var(--bg3);color:var(--text);
@@ -126,6 +122,9 @@ body{
 [data-playing="false"] .sweep-canvas{opacity:0;transition:opacity .3s}
 [data-playing="true"] .sweep-canvas{opacity:1;transition:opacity .15s}
 .segment-ring{transform-origin:center;will-change:transform}
+[data-playing="false"] .seg-path{cursor:pointer}
+[data-playing="false"] .seg-path:hover{filter:brightness(1.25)}
+[data-playing="false"] .seg-path:active{filter:brightness(.85)}
 .segment path{transition:filter .15s ease-out;stroke:var(--bg);stroke-width:.8}
 
 /* ── Beat Info ── */
@@ -139,9 +138,9 @@ body{
   display:flex;gap:0;justify-content:center;
 }
 .beat-labels span{
-  transition:color .12s,text-shadow .12s;padding:0 1px;
+  transition:background .08s,color .08s;padding:1px 3px;border-radius:3px;
 }
-.beat-labels span.active{text-shadow:0 0 8px currentColor}
+.beat-labels span.active{background:var(--active-bg);color:var(--bg)!important}
 .beat-labels .sep{color:var(--text3);padding:0;font-weight:400}
 
 /* ── Carousel ── */
@@ -199,48 +198,41 @@ body{
 .btn-save:hover{border-color:var(--text2)}
 .render-status{font-size:11px;color:var(--text2)}
 .footer-right{margin-left:auto;text-align:right;line-height:1.5}
-.footer-right a{color:var(--text2);text-decoration:none}
+.footer-right a{color:var(--dum);text-decoration:none}
 .footer-right a:hover{text-decoration:underline}
+.footer-right a:active{color:var(--tek)}
 .headphone-note{font-size:10px;color:var(--text3);font-style:italic}
 </style>
 </head>
 <body data-theme="dark" data-playing="false">
 
 <header class="controls">
-  <button id="toggle" class="btn-play">ÇAL</button>
-
   <div class="slider-group bpm-group">
-    <label>HIZ (BPM)</label>
+    <label id="bpmLabel">HIZ (BPM)</label>
     <button class="bpm-step-btn" id="bpmDec" aria-label="BPM azalt">−</button>
     <input id="bpmNumber" class="spinbox" type="number" min="33" max="333" step="1" value="120"/>
     <button class="bpm-step-btn" id="bpmInc" aria-label="BPM artır">+</button>
   </div>
 
-  <div class="slider-group">
-    <label for="dumFreq">DÜM (Hz)</label>
-    <input id="dumFreq" type="range" min="77" max="164" value="140"/>
-    <input id="dumFreqNumber" class="spinbox" type="number" min="77" max="164" step="1" value="140"/>
-  </div>
-
-  <div class="slider-group">
-    <label for="tekFreq">TEK (Hz)</label>
-    <input id="tekFreq" type="range" min="77" max="164" value="141"/>
+  <div class="slider-group bpm-group">
+    <button class="bpm-step-btn" id="tekDec" aria-label="Tek frekans azalt">−</button>
     <input id="tekFreqNumber" class="spinbox" type="number" min="77" max="164" step="1" value="141"/>
+    <button class="bpm-step-btn" id="tekInc" aria-label="Tek frekans artır">+</button>
+    <label class="mute-label" id="tekMute" data-voice="tek" aria-pressed="false" role="button" tabindex="0">TEK (Hz)</label>
+  </div>
+
+  <button id="toggle" class="btn-play">VUR</button>
+
+  <div class="slider-group bpm-group">
+    <label class="mute-label" id="dumMute" data-voice="dum" aria-pressed="false" role="button" tabindex="0">DÜM (Hz)</label>
+    <button class="bpm-step-btn" id="dumDec" aria-label="Düm frekans azalt">−</button>
+    <input id="dumFreqNumber" class="spinbox" type="number" min="77" max="164" step="1" value="140"/>
+    <button class="bpm-step-btn" id="dumInc" aria-label="Düm frekans artır">+</button>
   </div>
 
   <div class="slider-group">
-    <label for="volume">SES (%)</label>
     <input id="volume" type="range" min="0" max="100" value="100"/>
-  </div>
-
-  <div class="mute-group">
-    <button class="mute-btn" id="tekMute" data-voice="tek" aria-pressed="false" aria-label="TEK sesini kapat">TEK</button>
-    <button class="mute-btn" id="dumMute" data-voice="dum" aria-pressed="false" aria-label="DÜM sesini kapat">DÜM</button>
-  </div>
-
-  <div class="mode-group">
-    <button class="disk-btn" id="diskToggle" aria-pressed="false" aria-label="Disk modu" title="Disk modu">&#9680;</button>
-    <button class="theme-btn" id="themeToggle" aria-label="Tema değiştir">☀</button>
+    <label for="volume">SES (%)</label>
   </div>
 </header>
 
@@ -280,8 +272,12 @@ body{
     <button id="renderWavBtn" class="btn-save" aria-label="WAV olarak kaydet">&#9660; KAYDET</button>
     <span class="render-status" id="renderStatus"></span>
   </div>
+  <div class="mode-group">
+    <button class="disk-btn" id="diskToggle" aria-pressed="false" aria-label="Disk modu" title="Disk modu">&#9680;</button>
+    <button class="theme-btn" id="themeToggle" aria-label="Tema değiştir">☀</button>
+  </div>
   <div class="footer-right">
-    <div>Tasarım ve Geliştirme: <a href="https://esrefberkturkoglu.com" target="_blank" rel="noopener">Eşref Berk Türkoğlu</a></div>
+    <div><a href="https://esrefberkturkoglu.com" target="_blank" rel="noopener">Eşref Berk Türkoğlu</a></div>
     <div class="headphone-note">Etkili öğrenim için kulaklık kullanımı veya optimal bir stereo dinleme deneyimi şarttır.</div>
   </div>
 </footer>
@@ -445,9 +441,7 @@ const noiseBuffer = createNoiseBuffer(audioCtx, NOISE_DURATION);
 
 // ── DOM References ──────────────────────────────────────────────
 const bpmNumber = document.getElementById("bpmNumber");
-const dumSlider = document.getElementById("dumFreq");
 const dumNumber = document.getElementById("dumFreqNumber");
-const tekSlider = document.getElementById("tekFreq");
 const tekNumber = document.getElementById("tekFreqNumber");
 const volumeSlider = document.getElementById("volume");
 
@@ -507,8 +501,8 @@ function setVolumeValue(value) {
 function setDumValue(value) {
   dumFreq = clamp(Number(value) || FREQ_MIN, FREQ_MIN, FREQ_MAX);
   enforceFreqOrder();
-  syncUI(dumSlider, dumNumber, null, dumFreq);
-  syncUI(tekSlider, tekNumber, null, tekFreq);
+  dumNumber.value = dumFreq;
+  tekNumber.value = tekFreq;
 }
 function setTekValue(value) {
   tekFreq = clamp(Number(value) || FREQ_MIN, FREQ_MIN, FREQ_MAX);
@@ -516,8 +510,8 @@ function setTekValue(value) {
     dumFreq = Math.max(FREQ_MIN, tekFreq - 1);
     if (tekFreq <= dumFreq) tekFreq = Math.min(FREQ_MAX, dumFreq + 1);
   }
-  syncUI(dumSlider, dumNumber, null, dumFreq);
-  syncUI(tekSlider, tekNumber, null, tekFreq);
+  dumNumber.value = dumFreq;
+  tekNumber.value = tekFreq;
 }
 
 // ── Noise Buffer Creation ───────────────────────────────────────
@@ -791,7 +785,7 @@ function stopTransport() {
   timerId = null;
   isPlaying = false;
   document.body.dataset.playing = "false";
-  document.getElementById("toggle").textContent = "ÇAL";
+  document.getElementById("toggle").textContent = "VUR";
   stopSweepAnimation();
 }
 
@@ -976,6 +970,88 @@ function renderSegmentRing() {
     startAngle += seg.units * degPerUnit;
   });
 }
+
+// ── Segment Click Sound ────────────────────────────────────────
+function activateBeatLabel(eventIdx, durationMs) {
+  clearKaraokeHighlight();
+  const span = beatLabelSpans[eventIdx];
+  if (!span) return;
+  const segIdx = eventToSegment[eventIdx];
+  const color = segIdx !== undefined ? getSegColor(visualSegments[segIdx].type) : getSegColor("tek");
+  span.style.setProperty("--active-bg", color);
+  span.classList.add("active");
+  lastActiveEventIdx = eventIdx;
+  setTimeout(() => {
+    span.classList.remove("active");
+    span.style.removeProperty("--active-bg");
+    if (lastActiveEventIdx === eventIdx) lastActiveEventIdx = -1;
+  }, durationMs);
+}
+
+function clickHandBar(event, segUnits) {
+  const vol = volume / VOL_MAX;
+  if (vol < 0.05) return;
+  const color = getSegColor(event.kind === "dum" ? "dum" : "tek");
+  const retractMs = Math.max(80, segUnits * secondsPerBeat() * 0.5 * 1000);
+  if (eventHasRightSide(event)) {
+    rightBar.style.background = color;
+    rightBar.style.transition = "transform 0.06s ease-out";
+    rightBar.style.transform = `scaleY(${vol})`;
+    setTimeout(() => { rightBar.style.transition = `transform ${retractMs}ms linear`; rightBar.style.transform = "scaleY(0)"; }, 60);
+  }
+  if (eventHasLeftSide(event)) {
+    leftBar.style.background = color;
+    leftBar.style.transition = "transform 0.06s ease-out";
+    leftBar.style.transform = `scaleY(${vol})`;
+    setTimeout(() => { leftBar.style.transition = `transform ${retractMs}ms linear`; leftBar.style.transform = "scaleY(0)"; }, 60);
+  }
+}
+
+let segClickLocked = false;
+document.getElementById("segmentRing").addEventListener("click", e => {
+  if (isPlaying || segClickLocked) return;
+  const path = e.target.closest(".seg-path");
+  if (!path) return;
+  const segIdx = Number(path.dataset.seg);
+  const seg = visualSegments[segIdx];
+  if (!seg) return;
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  const now = audioCtx.currentTime + 0.02;
+  const spb = secondsPerBeat();
+  const farFuture = now + 2;
+  const evIdx0 = seg.startIdx;
+  const totalMs = seg.units * spb * 1000;
+
+  segClickLocked = true;
+  setTimeout(() => { segClickLocked = false; }, totalMs);
+
+  function clickPlayEvent(ev, time, nextTime) {
+    if (ev.kind === "dum") liveEngine.playDum(time, nextTime, dumFreq, bpm, 1.0);
+    else if (ev.kind === "weakLeft") liveEngine.playWeakHit(time, nextTime, tekFreq, PAN_LEFT, bpm, 1.0);
+    else if (ev.kind === "weakRight") liveEngine.playWeakHit(time, nextTime, tekFreq, PAN_RIGHT, bpm, 1.0);
+    else if (ev.kind === "bothWeak") liveEngine.playHek(time, nextTime, nextTime, tekFreq, bpm, 1.0);
+  }
+
+  if (seg.events.length === 1) {
+    clickPlayEvent(seg.events[0], now, farFuture);
+    pulseSegment(segIdx);
+    clickHandBar(seg.events[0], seg.units);
+    activateBeatLabel(evIdx0, totalMs);
+  } else {
+    const gap = seg.events[0].units * spb;
+    const gapMs = gap * 1000;
+    clickPlayEvent(seg.events[0], now, now + gap);
+    clickPlayEvent(seg.events[1], now + gap, farFuture);
+    pulseSegment(segIdx);
+    clickHandBar(seg.events[0], seg.events[0].units);
+    activateBeatLabel(evIdx0, gapMs);
+    setTimeout(() => {
+      pulseSegment(segIdx);
+      clickHandBar(seg.events[1], seg.events[1].units);
+      activateBeatLabel(evIdx0 + 1, seg.events[1].units * spb * 1000);
+    }, gapMs);
+  }
+});
 
 // ── Canvas Sweep Hand ───────────────────────────────────────────
 let sweepRafId = null;
@@ -1220,8 +1296,12 @@ function updateKaraokeHighlight(progress) {
   if (activeIdx !== lastActiveEventIdx) {
     if (lastActiveEventIdx >= 0 && beatLabelSpans[lastActiveEventIdx]) {
       beatLabelSpans[lastActiveEventIdx].classList.remove("active");
+      beatLabelSpans[lastActiveEventIdx].style.removeProperty("--active-bg");
     }
     if (beatLabelSpans[activeIdx]) {
+      const segIdx = eventToSegment[activeIdx];
+      const color = segIdx !== undefined ? getSegColor(visualSegments[segIdx].type) : getSegColor("tek");
+      beatLabelSpans[activeIdx].style.setProperty("--active-bg", color);
       beatLabelSpans[activeIdx].classList.add("active");
     }
     lastActiveEventIdx = activeIdx;
@@ -1229,7 +1309,7 @@ function updateKaraokeHighlight(progress) {
 }
 
 function clearKaraokeHighlight() {
-  beatLabelSpans.forEach(sp => sp.classList.remove("active"));
+  beatLabelSpans.forEach(sp => { sp.classList.remove("active"); sp.style.removeProperty("--active-bg"); });
   lastActiveEventIdx = -1;
 }
 
@@ -1388,12 +1468,26 @@ document.getElementById("toggle").addEventListener("click", async () => {
   else stopTransport();
 });
 
-bpmNumber.addEventListener("input", e => setBpmValue(e.target.value));
+// Hold-to-repeat for +/- buttons
+function holdButton(btn, fn) {
+  let tid, iid;
+  function start(e) { e.preventDefault(); fn(); tid = setTimeout(() => { iid = setInterval(fn, 80); }, 400); }
+  function stop() { clearTimeout(tid); clearInterval(iid); }
+  btn.addEventListener("pointerdown", start);
+  btn.addEventListener("pointerup", stop);
+  btn.addEventListener("pointerleave", stop);
+  btn.addEventListener("pointercancel", stop);
+}
+
 bpmNumber.addEventListener("change", e => setBpmValue(e.target.value));
-document.getElementById("bpmDec").addEventListener("click", () => setBpmValue(bpm - 1));
-document.getElementById("bpmInc").addEventListener("click", () => setBpmValue(bpm + 1));
-bindSliderSpinbox(dumSlider, dumNumber, setDumValue);
-bindSliderSpinbox(tekSlider, tekNumber, setTekValue);
+holdButton(document.getElementById("bpmDec"), () => setBpmValue(bpm - 1));
+holdButton(document.getElementById("bpmInc"), () => setBpmValue(bpm + 1));
+dumNumber.addEventListener("change", e => setDumValue(e.target.value));
+holdButton(document.getElementById("dumDec"), () => setDumValue(dumFreq - 1));
+holdButton(document.getElementById("dumInc"), () => setDumValue(dumFreq + 1));
+tekNumber.addEventListener("change", e => setTekValue(e.target.value));
+holdButton(document.getElementById("tekDec"), () => setTekValue(tekFreq - 1));
+holdButton(document.getElementById("tekInc"), () => setTekValue(tekFreq + 1));
 volumeSlider.addEventListener("input", e => setVolumeValue(e.target.value));
 
 // Mute toggles
@@ -1409,22 +1503,17 @@ document.getElementById("tekMute").addEventListener("click", () => {
 document.getElementById("repeatCount").addEventListener("input", e => {
   e.target.value = clamp(Number(e.target.value) || 1, REPEAT_MIN, REPEAT_MAX);
 });
-document.getElementById("repeatDec").addEventListener("click", () => {
-  const el = document.getElementById("repeatCount");
-  el.value = clamp(Number(el.value) - 1, REPEAT_MIN, REPEAT_MAX);
-});
-document.getElementById("repeatInc").addEventListener("click", () => {
-  const el = document.getElementById("repeatCount");
-  el.value = clamp(Number(el.value) + 1, REPEAT_MIN, REPEAT_MAX);
-});
+const repeatEl = document.getElementById("repeatCount");
+holdButton(document.getElementById("repeatDec"), () => { repeatEl.value = clamp(Number(repeatEl.value) - 1, REPEAT_MIN, REPEAT_MAX); });
+holdButton(document.getElementById("repeatInc"), () => { repeatEl.value = clamp(Number(repeatEl.value) + 1, REPEAT_MIN, REPEAT_MAX); });
 document.getElementById("renderWavBtn").addEventListener("click", () => renderSelectedPatternToWav());
 
 // Scroll on sliders
 function addScrollHandler(el, setter, getter, step) {
   el.addEventListener("wheel", e => { e.preventDefault(); setter(getter() + (e.deltaY < 0 ? step : -step)); }, {passive:false});
 }
-addScrollHandler(dumSlider, setDumValue, () => dumFreq, 1);
-addScrollHandler(tekSlider, setTekValue, () => tekFreq, 1);
+dumNumber.addEventListener("wheel", e => { e.preventDefault(); setDumValue(dumFreq + (e.deltaY < 0 ? 1 : -1)); }, {passive:false});
+tekNumber.addEventListener("wheel", e => { e.preventDefault(); setTekValue(tekFreq + (e.deltaY < 0 ? 1 : -1)); }, {passive:false});
 addScrollHandler(volumeSlider, setVolumeValue, () => volume, 2);
 bpmNumber.addEventListener("wheel", e => { e.preventDefault(); setBpmValue(bpm + (e.deltaY < 0 ? 1 : -1)); }, {passive:false});
 document.getElementById("repeatCount").addEventListener("wheel", e => {
