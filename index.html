@@ -50,7 +50,7 @@ body{
 }
 [data-compact="true"] .mobile-toggle[aria-expanded="true"]{border-color:var(--dum);color:var(--dum)}
 [data-compact="true"] .controls{justify-content:center;gap:8px;flex-wrap:wrap;position:relative}
-[data-compact="true"] #headerToggle{position:absolute;right:14px}
+[data-compact="true"] #headerToggle{display:none!important}
 [data-compact="true"] .controls-panel{
   display:none;width:100%;flex-direction:column;align-items:center;gap:8px;
   padding-top:8px;border-top:1px solid var(--border);
@@ -61,7 +61,7 @@ body{
   padding:8px 14px;justify-items:center;
 }
 [data-compact="true"] .controls:has(.controls-panel.open) #toggle{grid-column:1/-1;justify-self:center;order:-1}
-[data-compact="true"] .controls:has(.controls-panel.open) #headerToggle{position:absolute;right:14px;top:12px}
+[data-compact="true"] .controls:has(.controls-panel.open) #headerToggle{display:none!important}
 [data-compact="true"] .controls:has(.controls-panel.open) .slider-group{
   border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--bg3);
 }
@@ -97,6 +97,11 @@ body{
 body:not([data-compact="true"]) .controls{min-height:60px;background:transparent;border-top:none}
 body:not([data-compact="true"]) .carousel{background:transparent;border-top:none}
 body:not([data-compact="true"]) .app-footer{min-height:60px;background:transparent;border-top:none}
+/* ── Mobile bar overrides ── */
+[data-compact="true"] .controls{background:transparent;border-top:none}
+[data-compact="true"] .carousel{background:transparent;border-top:none}
+[data-compact="true"] .app-footer{background:transparent;border-top:none}
+[data-compact="true"] .viz-area{gap:12px;padding-bottom:12px;padding-top:4px}
 
 /* ── Controls ── */
 .controls{
@@ -1788,15 +1793,13 @@ diskToggleBtn.addEventListener("click", () => {
 
 // ── Theme Toggle ────────────────────────────────────────────────
 function initTheme() {
-  const saved = localStorage.getItem("usulsayar-theme") || "light";
-  document.body.dataset.theme = saved;
-  document.getElementById("themeToggle").textContent = saved === "dark" ? "☀" : "🌙";
+  document.body.dataset.theme = "light";
+  document.getElementById("themeToggle").textContent = "🌙";
 }
 
 document.getElementById("themeToggle").addEventListener("click", () => {
   const next = document.body.dataset.theme === "dark" ? "light" : "dark";
   document.body.dataset.theme = next;
-  localStorage.setItem("usulsayar-theme", next);
   document.getElementById("themeToggle").textContent = next === "dark" ? "☀" : "🌙";
   // Re-render segment colors
   renderSegmentRing();
@@ -1914,15 +1917,11 @@ diskToggleBtn.setAttribute("aria-pressed", "true");
 fitBeatLabels();
 
 if (document.body.dataset.compact === "true") {
-  // Open header toggle
+  // Open both menus via footer toggle
   document.getElementById("controlsPanel").classList.add("open");
   document.getElementById("controlsPanel2").classList.add("open");
-  const hBtn = document.getElementById("headerToggle");
-  hBtn.setAttribute("aria-expanded", "true");
-  hBtn.textContent = "\u25B2";
   document.getElementById("tekMute").textContent = "T";
   document.getElementById("dumMute").textContent = "D";
-  // Open footer toggle
   document.getElementById("renderPanel").classList.add("open");
   const fBtn = document.getElementById("footerToggle");
   fBtn.setAttribute("aria-expanded", "true");
@@ -1950,6 +1949,16 @@ document.getElementById("footerToggle").addEventListener("click", () => {
   const open = panel.classList.toggle("open");
   btn.setAttribute("aria-expanded", String(open));
   btn.textContent = open ? "\u25BC" : "\u25B2";
+  // Sync header panels in compact mode
+  if (document.body.dataset.compact === "true") {
+    const p1 = document.getElementById("controlsPanel");
+    const p2 = document.getElementById("controlsPanel2");
+    p1.classList.toggle("open", open);
+    p2.classList.toggle("open", open);
+    document.getElementById("toggle").style.display = "";
+    document.getElementById("tekMute").textContent = open ? "T" : "TEK";
+    document.getElementById("dumMute").textContent = open ? "D" : "DÜM";
+  }
 });
 </script>
 </body>
