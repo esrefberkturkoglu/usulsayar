@@ -60,8 +60,8 @@ body{
   display:grid;grid-template-columns:1fr 1fr;gap:8px;
   padding:8px 14px;justify-items:center;
 }
-[data-compact="true"] .controls:has(.controls-panel.open) #toggle{grid-column:1/-1;justify-self:center;order:10}
-[data-compact="true"] .controls:has(.controls-panel.open) #headerToggle{position:absolute;right:14px;bottom:12px}
+[data-compact="true"] .controls:has(.controls-panel.open) #toggle{grid-column:1/-1;justify-self:center;order:-1}
+[data-compact="true"] .controls:has(.controls-panel.open) #headerToggle{position:absolute;right:14px;top:12px}
 [data-compact="true"] .controls:has(.controls-panel.open) .slider-group{
   border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--bg3);
 }
@@ -82,12 +82,14 @@ body{
 [data-compact="true"] .slider-group .group-icon,[data-compact="true"] .slider-group .mute-label{min-width:28px;text-align:center;box-sizing:border-box}
 [data-compact="true"] .app-footer{flex-wrap:wrap;justify-content:flex-start}
 [data-compact="true"] .app-footer:has(#renderPanel.open){flex-wrap:wrap-reverse}
-[data-compact="true"] .footer-left{position:static;transform:none;order:1;flex:1;min-width:0;font-size:12px}
+[data-compact="true"] .footer-left{position:static;transform:none;order:1;flex:1;min-width:0;font-size:12px;align-self:flex-end}
+[data-compact="true"] .app-footer:has(#renderPanel.open) .footer-left{align-self:flex-start}
 [data-compact="true"] .footer-center{display:contents}
 [data-compact="true"] #footerToggle{order:2}
 [data-compact="true"] .mode-group{display:none}
 [data-compact="true"] .app-footer:has(#renderPanel.open) .mode-group{display:flex;position:absolute;right:14px;top:8px;gap:8px}
-[data-compact="true"] .footer-right{position:static;transform:none;order:3;flex:1;min-width:0;font-size:12px;text-align:right}
+[data-compact="true"] .footer-right{position:static;transform:none;order:3;flex:1;min-width:0;font-size:12px;text-align:right;align-self:flex-end}
+[data-compact="true"] .app-footer:has(#renderPanel.open) .footer-right{align-self:flex-start}
 [data-compact="true"] #renderPanel{order:5;flex-basis:100%;display:none}
 [data-compact="true"] #renderPanel.open{display:flex;justify-content:flex-start;flex-wrap:nowrap}
 
@@ -103,12 +105,28 @@ body:not([data-compact="true"]) .app-footer{min-height:60px;background:transpare
   flex-wrap:wrap;z-index:10;
 }
 .btn-play{
-  width:56px;height:36px;border:none;border-radius:18px;
-  font-size:14px;font-weight:700;cursor:pointer;
+  width:72px;height:44px;border:none;border-radius:22px;
+  font-size:17px;font-weight:800;letter-spacing:.5px;cursor:pointer;
   background:var(--dum);color:#fff;transition:background .2s,transform .1s;
+  position:relative;z-index:1;
 }
 .btn-play:active{transform:scale(.95)}
-[data-playing="true"] .btn-play{background:#666}
+[data-playing="false"] .btn-play{animation:vur-breathe 2s ease-in-out infinite}
+@keyframes vur-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+[data-playing="true"] .btn-play{background:#666;animation:none}
+.btn-play::after{
+  content:'';position:absolute;inset:-4px;border-radius:26px;
+  pointer-events:none;z-index:-1;
+}
+[data-playing="false"] .btn-play::after{
+  animation:vur-halo 2s ease-out infinite;
+  box-shadow:0 0 0 0 color-mix(in srgb,var(--dum) 50%,transparent);
+}
+@keyframes vur-halo{
+  0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--dum) 40%,transparent)}
+  70%{box-shadow:0 0 8px 10px transparent}
+  100%{box-shadow:0 0 0 0 transparent}
+}
 .slider-group{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--bg3)}
 .slider-group label{width:62px;text-align:right;flex-shrink:0}
 .slider-group label.mute-label{width:auto}
@@ -116,7 +134,9 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 .icon-group{position:relative}
 .group-icon{font-size:18px;opacity:.7;flex-shrink:0}
 @keyframes bpm-pulse{0%{transform:scale(1)}15%{transform:scale(1.35)}100%{transform:scale(1)}}
-#bpmIcon.pulse{animation:bpm-pulse .25s ease-out}
+#bpmIcon.pulse,#volumeIcon.pulse{animation:bpm-pulse .25s ease-out}
+@keyframes mute-pulse{0%{transform:scale(1);opacity:1}15%{transform:scale(1.25);opacity:1}100%{transform:scale(1);opacity:1}}
+.mute-label.pulse{animation:mute-pulse .2s ease-out}
 @keyframes ring-pulse{0%{transform:scale(1)}15%{transform:scale(var(--pulse-scale,1.04))}100%{transform:scale(1)}}
 .viz-container.ring-pulse{animation:ring-pulse var(--pulse-dur,.25s) ease-out}
 .slider-group input[type="range"]{
@@ -183,7 +203,7 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 /* ── Visualization ── */
 .viz-area{
   grid-area:viz;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
-  position:relative;min-height:0;padding:8px;padding-bottom:53px;gap:53px;
+  position:relative;min-height:0;min-width:0;padding:8px;padding-bottom:53px;gap:53px;overflow:hidden;
 }
 .viz-container{position:relative;width:min(90%,50vh);aspect-ratio:1}
 .segment-ring,.sweep-canvas{position:absolute;top:0;left:0;width:100%;height:100%}
@@ -209,6 +229,7 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
   text-align:center;padding:4px 0;
   display:flex;flex-direction:column;align-items:center;gap:2px;
   justify-content:center;overflow:hidden;z-index:5;flex-shrink:0;
+  min-height:52px;
 }
 .beat-labels{
   white-space:nowrap;line-height:1.3;font-weight:600;
@@ -281,9 +302,9 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
   display:flex;align-items:center;justify-content:center;gap:6px;
   position:relative;min-height:53px;
 }
-.footer-left{position:absolute;left:14px;top:50%;transform:translateY(-50%);white-space:nowrap}
+.footer-left{position:absolute;left:14px;bottom:6px;white-space:nowrap}
 .footer-center{display:flex;align-items:center;gap:8px}
-.footer-right{position:absolute;right:14px;top:50%;transform:translateY(-50%);white-space:nowrap}
+.footer-right{position:absolute;right:14px;bottom:6px;white-space:nowrap}
 .footer-left a{color:var(--dum);text-decoration:none}
 .footer-left a:hover{text-decoration:underline}
 .footer-left a:active{color:var(--tek)}
@@ -302,10 +323,10 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 .footer-right a:active{color:var(--dum)}
 </style>
 </head>
-<body data-theme="dark" data-playing="false">
+<body data-theme="light" data-playing="false">
 
 <header class="controls">
-  <button class="mobile-toggle" id="headerToggle" aria-label="Kontrolleri aç/kapat" aria-expanded="false">&#9650;</button>
+  <button class="mobile-toggle" id="headerToggle" aria-label="Kontrolleri aç/kapat" aria-expanded="false">&#9660;</button>
   <div class="controls-panel" id="controlsPanel">
     <div class="slider-group bpm-group icon-group" id="bpmGroup">
       <button class="bpm-step-btn" id="bpmDec" aria-label="BPM azalt">−</button>
@@ -369,8 +390,8 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
   <div class="footer-left">&copy; 2026 <a href="https://esrefberkturkoglu.com" target="_blank" rel="noopener">Eşref Berk Türkoğlu</a></div>
   <div class="footer-center">
     <div class="mode-group">
-      <button class="disk-btn" id="diskToggle" aria-pressed="false" aria-label="Disk modu" title="Disk modu">&#9680;</button>
       <button class="theme-btn" id="themeToggle" aria-label="Tema değiştir">☀</button>
+      <button class="disk-btn" id="diskToggle" aria-pressed="false" aria-label="Disk modu" title="Disk modu">&#9680;</button>
     </div>
     <button class="mobile-toggle" id="footerToggle" aria-label="Kaydet panelini aç/kapat" aria-expanded="false">&#9650;</button>
   </div>
@@ -955,7 +976,7 @@ function scheduler() {
     if (onScheduledEvent) onScheduledEvent(stepIndex, time, event, rightNext, leftNext);
     nextNoteTime = time + (event.units * secondsPerBeat());
     currentStep = (currentStep + 1) % pattern.length;
-    if (currentStep === 0) pulseUnitAcc = 0;
+    if (currentStep === 0) { pulseUnitAcc = 0; volPulseHalfAcc = 0; }
   }
 }
 
@@ -963,6 +984,7 @@ async function startTransport() {
   if (audioCtx.state === "suspended") await audioCtx.resume();
   currentStep = 0;
   pulseUnitAcc = 0;
+  volPulseHalfAcc = 0;
   nextNoteTime = audioCtx.currentTime + TRANSPORT_START_DELAY;
   cycleStartTime = nextNoteTime;
   timerId = setInterval(scheduler, LOOKAHEAD_MS);
@@ -1527,8 +1549,8 @@ function fitBeatLabels() {
   container.style.transition = "";
   container.style.fontSize = "";
 
-  // Disk mode: always marquee
-  if (diskMode) {
+  // Disk mode + playing: always marquee
+  if (diskMode && isPlaying) {
     container.classList.add("marquee");
     return;
   }
@@ -1536,27 +1558,13 @@ function fitBeatLabels() {
   // Fits in one line at default font → done
   if (container.scrollWidth <= maxWidth) return;
 
-  // Not playing: try font shrink + wrap (max 2 lines)
-  if (!isPlaying) {
-    container.classList.add("fitted");
-    for (let fs = 15; fs >= 9; fs -= 0.5) {
-      container.style.fontSize = fs + "px";
-      const maxH = fs * 1.3 * 2.5; // line-height:1.3, 2 lines + span padding tolerance
-      if (container.scrollHeight <= maxH && container.scrollWidth <= maxWidth) break;
-    }
-    // If still doesn't fit at min font, fall back to marquee
-    const finalFs = parseFloat(container.style.fontSize);
-    const finalMaxH = finalFs * 1.3 * 2.5;
-    if (container.scrollHeight > finalMaxH || container.scrollWidth > maxWidth) {
-      container.classList.remove("fitted");
-      container.style.fontSize = "";
-      container.classList.add("marquee");
-    }
-    return;
+  // Try font shrink + wrap (max 2 lines)
+  container.classList.add("fitted");
+  for (let fs = 15; fs >= 9; fs -= 0.5) {
+    container.style.fontSize = fs + "px";
+    const maxH = fs * 1.3 * 2.5; // line-height:1.3, 2 lines + span padding tolerance
+    if (container.scrollHeight <= maxH && container.scrollWidth <= maxWidth) break;
   }
-
-  // Playing: marquee mode (no font changes)
-  container.classList.add("marquee");
 }
 
 function scrollMarqueeToSpan(span, durationSec) {
@@ -1615,6 +1623,7 @@ function clearKaraokeHighlight() {
 
 // ── onScheduledEvent callback ───────────────────────────────────
 let pulseUnitAcc = 0;
+let volPulseHalfAcc = 0;
 onScheduledEvent = function(stepIndex, audioTime, event, rightNext, leftNext) {
   const segIdx = eventToSegment[stepIndex];
   if (segIdx !== undefined) pulseSegment(segIdx);
@@ -1630,6 +1639,32 @@ onScheduledEvent = function(stepIndex, audioTime, event, rightNext, leftNext) {
   }
   const segUnits = segIdx !== undefined ? visualSegments[segIdx].units : event.units;
   triggerHandBar(event, audioTime, rightNext, leftNext, segUnits);
+  // Mute button pulses (once per event)
+  if (volume > 0) {
+    setTimeout(() => {
+      if (event.kind === "dum" && !dumMuted) {
+        const db = document.getElementById("dumMute");
+        db.classList.remove("pulse"); void db.offsetWidth; db.classList.add("pulse");
+      }
+      if (event.kind !== "dum" && !tekMuted) {
+        const tb = document.getElementById("tekMute");
+        tb.classList.remove("pulse"); void tb.offsetWidth; tb.classList.add("pulse");
+      }
+    }, delayMs);
+    // Volume icon pulse — 2× per unit
+    const vi = document.getElementById("volumeIcon");
+    const halfSpbMs = spbMs / 2;
+    const prevHalf = volPulseHalfAcc;
+    volPulseHalfAcc += event.units * 2;
+    const fh = Math.ceil(prevHalf);
+    const lh = Math.ceil(volPulseHalfAcc) - 1;
+    for (let h = fh; h <= lh; h++) {
+      const off = h - prevHalf;
+      setTimeout(() => {
+        vi.classList.remove("pulse"); void vi.offsetWidth; vi.classList.add("pulse");
+      }, delayMs + off * halfSpbMs);
+    }
+  }
 };
 
 // ── Carousel ────────────────────────────────────────────────────
@@ -1753,7 +1788,7 @@ diskToggleBtn.addEventListener("click", () => {
 
 // ── Theme Toggle ────────────────────────────────────────────────
 function initTheme() {
-  const saved = localStorage.getItem("usulsayar-theme") || "dark";
+  const saved = localStorage.getItem("usulsayar-theme") || "light";
   document.body.dataset.theme = saved;
   document.getElementById("themeToggle").textContent = saved === "dark" ? "☀" : "🌙";
 }
@@ -1873,6 +1908,27 @@ function updateCompactMode() {
 updateCompactMode();
 window.addEventListener("resize", updateCompactMode);
 
+// ── Mobile-first defaults: disk mode on, toggles open ──────────
+diskMode = true;
+diskToggleBtn.setAttribute("aria-pressed", "true");
+fitBeatLabels();
+
+if (document.body.dataset.compact === "true") {
+  // Open header toggle
+  document.getElementById("controlsPanel").classList.add("open");
+  document.getElementById("controlsPanel2").classList.add("open");
+  const hBtn = document.getElementById("headerToggle");
+  hBtn.setAttribute("aria-expanded", "true");
+  hBtn.textContent = "\u25B2";
+  document.getElementById("tekMute").textContent = "T";
+  document.getElementById("dumMute").textContent = "D";
+  // Open footer toggle
+  document.getElementById("renderPanel").classList.add("open");
+  const fBtn = document.getElementById("footerToggle");
+  fBtn.setAttribute("aria-expanded", "true");
+  fBtn.textContent = "\u25BC";
+}
+
 // ── Mobile Toggles ─────────────────────────────────────────────
 document.getElementById("headerToggle").addEventListener("click", () => {
   const panel1 = document.getElementById("controlsPanel");
@@ -1881,7 +1937,7 @@ document.getElementById("headerToggle").addEventListener("click", () => {
   const open = panel1.classList.toggle("open");
   panel2.classList.toggle("open", open);
   btn.setAttribute("aria-expanded", String(open));
-  btn.textContent = open ? "\u25BC" : "\u25B2";
+  btn.textContent = open ? "\u25B2" : "\u25BC";
   if (document.body.dataset.compact === "true") {
     document.getElementById("toggle").style.display = "";
     document.getElementById("tekMute").textContent = open ? "T" : "TEK";
