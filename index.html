@@ -25,11 +25,10 @@ body{
   background:var(--bg);color:var(--text);
   display:grid;
   grid-template-columns:56px 1fr 56px;
-  grid-template-rows:auto 1fr auto auto auto;
+  grid-template-rows:1fr auto auto auto;
   grid-template-areas:
-    "ctrl ctrl ctrl"
     "lh viz rh"
-    "lh info rh"
+    "ctrl ctrl ctrl"
     "car car car"
     "foot foot foot";
   height:100dvh;overflow:hidden;
@@ -37,7 +36,8 @@ body{
   user-select:none;
 }
 .mobile-toggle{display:none}
-.controls-panel{display:contents}
+.controls-panel{display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-end}
+.controls-panel:last-of-type{justify-content:flex-start}
 /* ── Compact (mobile) mode — activated by JS when header overflows ── */
 [data-compact="true"]{grid-template-columns:0 1fr 0}
 [data-compact="true"] .hand-guide{position:absolute!important;width:40px!important;opacity:.15!important;z-index:0;pointer-events:none}
@@ -49,7 +49,8 @@ body{
   background:var(--bg3);color:var(--text);font-size:16px;cursor:pointer;flex-shrink:0;
 }
 [data-compact="true"] .mobile-toggle[aria-expanded="true"]{border-color:var(--dum);color:var(--dum)}
-[data-compact="true"] .controls{justify-content:space-between;gap:8px;flex-wrap:wrap}
+[data-compact="true"] .controls{justify-content:center;gap:8px;flex-wrap:wrap;position:relative}
+[data-compact="true"] #headerToggle{position:absolute;right:14px}
 [data-compact="true"] .controls-panel{
   display:none;width:100%;flex-direction:column;align-items:center;gap:8px;
   padding-top:8px;border-top:1px solid var(--border);
@@ -59,7 +60,8 @@ body{
   display:grid;grid-template-columns:1fr 1fr;gap:8px;
   padding:8px 14px;justify-items:center;
 }
-[data-compact="true"] .controls:has(.controls-panel.open) #headerToggle{grid-column:1/-1;justify-self:end}
+[data-compact="true"] .controls:has(.controls-panel.open) #toggle{grid-column:1/-1;justify-self:center;order:10}
+[data-compact="true"] .controls:has(.controls-panel.open) #headerToggle{position:absolute;right:14px;bottom:12px}
 [data-compact="true"] .controls:has(.controls-panel.open) .slider-group{
   border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--bg3);
 }
@@ -79,16 +81,25 @@ body{
 [data-compact="true"] .controls-panel .slider-group,[data-compact="true"] .controls:has(.controls-panel.open) .slider-group{width:166.72px;justify-content:center}
 [data-compact="true"] .slider-group .group-icon,[data-compact="true"] .slider-group .mute-label{min-width:28px;text-align:center;box-sizing:border-box}
 [data-compact="true"] .app-footer{flex-wrap:wrap;justify-content:flex-start}
-[data-compact="true"] .footer-left{position:static;transform:none;order:1;flex:1;min-width:0;font-size:10px}
-[data-compact="true"] .footer-center{order:2}
-[data-compact="true"] .footer-right{position:static;transform:none;order:3;flex:1;min-width:0;font-size:10px;text-align:right}
-[data-compact="true"] #renderPanel{order:4;flex-basis:100%;display:none}
-[data-compact="true"] #renderPanel.open{display:flex;justify-content:center}
+[data-compact="true"] .app-footer:has(#renderPanel.open){flex-wrap:wrap-reverse}
+[data-compact="true"] .footer-left{position:static;transform:none;order:1;flex:1;min-width:0;font-size:12px}
+[data-compact="true"] .footer-center{display:contents}
+[data-compact="true"] #footerToggle{order:2}
+[data-compact="true"] .mode-group{display:none}
+[data-compact="true"] .app-footer:has(#renderPanel.open) .mode-group{display:flex;position:absolute;right:14px;top:8px;gap:8px}
+[data-compact="true"] .footer-right{position:static;transform:none;order:3;flex:1;min-width:0;font-size:12px;text-align:right}
+[data-compact="true"] #renderPanel{order:5;flex-basis:100%;display:none}
+[data-compact="true"] #renderPanel.open{display:flex;justify-content:flex-start;flex-wrap:nowrap}
+
+/* ── Desktop bar overrides ── */
+body:not([data-compact="true"]) .controls{min-height:60px;background:transparent;border-top:none}
+body:not([data-compact="true"]) .carousel{background:transparent;border-top:none}
+body:not([data-compact="true"]) .app-footer{min-height:60px;background:transparent;border-top:none}
 
 /* ── Controls ── */
 .controls{
   grid-area:ctrl;display:flex;align-items:center;justify-content:space-between;gap:10px;
-  padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:8px 14px;background:var(--bg2);border-top:1px solid var(--border);
   flex-wrap:wrap;z-index:10;
 }
 .btn-play{
@@ -98,7 +109,7 @@ body{
 }
 .btn-play:active{transform:scale(.95)}
 [data-playing="true"] .btn-play{background:#666}
-.slider-group{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
+.slider-group{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--bg3)}
 .slider-group label{width:62px;text-align:right;flex-shrink:0}
 .slider-group label.mute-label{width:auto}
 body:not([data-compact="true"]) #tekMute{text-align:left}
@@ -106,8 +117,8 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 .group-icon{font-size:18px;opacity:.7;flex-shrink:0}
 @keyframes bpm-pulse{0%{transform:scale(1)}15%{transform:scale(1.35)}100%{transform:scale(1)}}
 #bpmIcon.pulse{animation:bpm-pulse .25s ease-out}
-@keyframes ring-pulse{0%{transform:scale(1)}15%{transform:scale(1.04)}100%{transform:scale(1)}}
-.viz-container.ring-pulse{animation:ring-pulse .25s ease-out}
+@keyframes ring-pulse{0%{transform:scale(1)}15%{transform:scale(var(--pulse-scale,1.04))}100%{transform:scale(1)}}
+.viz-container.ring-pulse{animation:ring-pulse var(--pulse-dur,.25s) ease-out}
 .slider-group input[type="range"]{
   -webkit-appearance:none;appearance:none;width:136px;height:6px;
   background:var(--ctrl-track);border-radius:3px;outline:none;cursor:pointer;
@@ -171,8 +182,8 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 
 /* ── Visualization ── */
 .viz-area{
-  grid-area:viz;display:flex;align-items:center;justify-content:center;
-  position:relative;min-height:0;padding:8px;
+  grid-area:viz;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  position:relative;min-height:0;padding:8px;padding-bottom:53px;gap:53px;
 }
 .viz-container{position:relative;width:min(90%,50vh);aspect-ratio:1}
 .segment-ring,.sweep-canvas{position:absolute;top:0;left:0;width:100%;height:100%}
@@ -194,9 +205,10 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 
 /* ── Beat Info ── */
 .beat-info{
-  grid-area:info;text-align:center;padding:4px 16px;
+  width:100%;max-width:calc(100% - 32px);
+  text-align:center;padding:4px 0;
   display:flex;flex-direction:column;align-items:center;gap:2px;
-  min-height:52px;justify-content:center;overflow:hidden;width:100%;
+  justify-content:center;overflow:hidden;z-index:5;flex-shrink:0;
 }
 .beat-labels{
   white-space:nowrap;line-height:1.3;font-weight:600;
@@ -225,7 +237,7 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 }
 .carousel-inner{
   display:flex;align-items:center;
-  width:min(100%,804px);height:100%;
+  width:min(100%,780px);height:100%;
 }
 .carousel-arrow{
   width:24px;height:100%;border:none;background:transparent;
@@ -265,9 +277,9 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 /* ── Footer ── */
 .app-footer{
   grid-area:foot;padding:6px 14px;background:var(--bg2);
-  border-top:1px solid var(--border);font-size:11px;color:var(--text3);
+  border-top:1px solid var(--border);font-size:14px;color:var(--text3);
   display:flex;align-items:center;justify-content:center;gap:6px;
-  position:relative;
+  position:relative;min-height:53px;
 }
 .footer-left{position:absolute;left:14px;top:50%;transform:translateY(-50%);white-space:nowrap}
 .footer-center{display:flex;align-items:center;gap:8px}
@@ -293,19 +305,19 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 <body data-theme="dark" data-playing="false">
 
 <header class="controls">
-  <button class="mobile-toggle" id="headerToggle" aria-label="Kontrolleri aç/kapat" aria-expanded="false">&#9776;</button>
+  <button class="mobile-toggle" id="headerToggle" aria-label="Kontrolleri aç/kapat" aria-expanded="false">&#9650;</button>
   <div class="controls-panel" id="controlsPanel">
     <div class="slider-group bpm-group icon-group" id="bpmGroup">
       <button class="bpm-step-btn" id="bpmDec" aria-label="BPM azalt">−</button>
-      <span class="spinbox-wrap"><input id="bpmNumber" class="spinbox" type="number" min="33" max="333" step="1" value="60"/><span class="spinbox-unit">BPM</span></span>
       <button class="bpm-step-btn" id="bpmInc" aria-label="BPM artır">+</button>
+      <span class="spinbox-wrap"><input id="bpmNumber" class="spinbox" type="number" min="33" max="333" step="1" value="60"/><span class="spinbox-unit">BPM</span></span>
       <span class="group-icon" id="bpmIcon">&#9200;</span>
     </div>
 
     <div class="slider-group bpm-group" id="tekGroup">
       <button class="bpm-step-btn" id="tekDec" aria-label="Tek frekans azalt">−</button>
-      <span class="spinbox-wrap"><input id="tekFreqNumber" class="spinbox" type="number" min="33" max="333" step="1" value="147"/><span class="spinbox-unit">Hz</span></span>
       <button class="bpm-step-btn" id="tekInc" aria-label="Tek frekans artır">+</button>
+      <span class="spinbox-wrap"><input id="tekFreqNumber" class="spinbox" type="number" min="33" max="333" step="1" value="147"/><span class="spinbox-unit">Hz</span></span>
       <label class="mute-label" id="tekMute" data-voice="tek" aria-pressed="false" role="button" tabindex="0">TEK</label>
     </div>
   </div>
@@ -315,8 +327,8 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
   <div class="controls-panel" id="controlsPanel2">
     <div class="slider-group bpm-group" id="dumGroup">
       <label class="mute-label" id="dumMute" data-voice="dum" aria-pressed="false" role="button" tabindex="0">DÜM</label>
-      <button class="bpm-step-btn" id="dumDec" aria-label="Düm frekans azalt">−</button>
       <span class="spinbox-wrap"><input id="dumFreqNumber" class="spinbox" type="number" min="33" max="333" step="1" value="98"/><span class="spinbox-unit">Hz</span></span>
+      <button class="bpm-step-btn" id="dumDec" aria-label="Düm frekans azalt">−</button>
       <button class="bpm-step-btn" id="dumInc" aria-label="Düm frekans artır">+</button>
     </div>
 
@@ -332,6 +344,9 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 </aside>
 
 <main class="viz-area">
+  <div class="beat-info">
+    <div class="beat-labels" id="beatLabels" aria-live="polite"></div>
+  </div>
   <div class="viz-container">
     <svg id="segmentRing" class="segment-ring" viewBox="0 0 200 200"></svg>
     <canvas id="sweepCanvas" class="sweep-canvas"></canvas>
@@ -341,10 +356,6 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 <aside class="hand-guide hand-guide--right" aria-hidden="true">
   <div class="hand-bar" id="rightBar"></div>
 </aside>
-
-<div class="beat-info">
-  <div class="beat-labels" id="beatLabels" aria-live="polite"></div>
-</div>
 
 <nav class="carousel">
   <div class="carousel-inner">
@@ -361,7 +372,7 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
       <button class="disk-btn" id="diskToggle" aria-pressed="false" aria-label="Disk modu" title="Disk modu">&#9680;</button>
       <button class="theme-btn" id="themeToggle" aria-label="Tema değiştir">☀</button>
     </div>
-    <button class="mobile-toggle" id="footerToggle" aria-label="Kaydet panelini aç/kapat" aria-expanded="false">&#9660;</button>
+    <button class="mobile-toggle" id="footerToggle" aria-label="Kaydet panelini aç/kapat" aria-expanded="false">&#9650;</button>
   </div>
   <div class="render-row" id="renderPanel">
     <button class="bpm-step-btn repeat-step-btn" id="repeatDec" aria-label="Tekrar azalt">−</button>
@@ -589,6 +600,14 @@ function startBpmPulse() {
 }
 function pulseRing() {
   const vc = document.querySelector(".viz-container");
+  const spbMs = secondsPerBeat() * 1000;
+  // Duration: 60% of beat, clamped between 80ms and 250ms
+  const dur = Math.max(80, Math.min(250, spbMs * 0.6));
+  // Scale: lerp from 1.04 at ≤100 BPM to 1.015 at ≥200 BPM
+  const t = Math.max(0, Math.min(1, (bpm - 100) / 100));
+  const scale = 1.04 - t * 0.025;
+  vc.style.setProperty("--pulse-dur", dur + "ms");
+  vc.style.setProperty("--pulse-scale", scale);
   vc.classList.remove("ring-pulse");
   void vc.offsetWidth;
   vc.classList.add("ring-pulse");
@@ -1508,6 +1527,12 @@ function fitBeatLabels() {
   container.style.transition = "";
   container.style.fontSize = "";
 
+  // Disk mode: always marquee
+  if (diskMode) {
+    container.classList.add("marquee");
+    return;
+  }
+
   // Fits in one line at default font → done
   if (container.scrollWidth <= maxWidth) return;
 
@@ -1723,6 +1748,7 @@ diskToggleBtn.addEventListener("click", () => {
   if (!diskMode) {
     document.getElementById("segmentRing").style.transform = "";
   }
+  fitBeatLabels();
 });
 
 // ── Theme Toggle ────────────────────────────────────────────────
@@ -1839,7 +1865,7 @@ function updateCompactMode() {
   // Temporarily force non-compact to measure natural header height
   body.dataset.compact = 'false';
   void header.offsetHeight; // force reflow
-  const wraps = header.scrollHeight > 52; // single row ~36px btn + 16px padding
+  const wraps = header.scrollHeight > 68; // single row ~60px with group bg + padding
   body.dataset.compact = String(wraps);
   // Restore open state if it was open
   if (wasOpen) { p1.classList.add("open"); p2.classList.add("open"); }
@@ -1855,9 +1881,9 @@ document.getElementById("headerToggle").addEventListener("click", () => {
   const open = panel1.classList.toggle("open");
   panel2.classList.toggle("open", open);
   btn.setAttribute("aria-expanded", String(open));
-  btn.textContent = open ? "\u2715" : "\u2630";
+  btn.textContent = open ? "\u25BC" : "\u25B2";
   if (document.body.dataset.compact === "true") {
-    document.getElementById("toggle").style.display = open ? "none" : "";
+    document.getElementById("toggle").style.display = "";
     document.getElementById("tekMute").textContent = open ? "T" : "TEK";
     document.getElementById("dumMute").textContent = open ? "D" : "DÜM";
   }
@@ -1867,7 +1893,7 @@ document.getElementById("footerToggle").addEventListener("click", () => {
   const btn = document.getElementById("footerToggle");
   const open = panel.classList.toggle("open");
   btn.setAttribute("aria-expanded", String(open));
-  btn.textContent = open ? "\u25B2" : "\u25BC";
+  btn.textContent = open ? "\u25BC" : "\u25B2";
 });
 </script>
 </body>
