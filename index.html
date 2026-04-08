@@ -60,10 +60,13 @@ body{
   padding:8px 14px;justify-items:center;
 }
 [data-compact="true"] .controls:has(.controls-panel.open) #headerToggle{grid-column:1/-1;justify-self:end}
+[data-compact="true"] .controls:has(.controls-panel.open) .slider-group{
+  border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--bg3);
+}
 [data-compact="true"] #tekGroup{order:1}
 [data-compact="true"] #dumGroup{order:2}
 [data-compact="true"] #bpmGroup{order:3}
-[data-compact="true"] #volumeGroup{order:4}
+[data-compact="true"] #volumeGroup{order:4;flex-direction:row-reverse}
 [data-compact="true"] #bpmInc{order:1}
 [data-compact="true"] #bpmGroup .spinbox-wrap{order:2}
 [data-compact="true"] #bpmGroup .group-icon{order:3}
@@ -181,7 +184,13 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 [data-playing="false"] .seg-path:hover{filter:brightness(1.25)}
 [data-playing="false"] .seg-path:active{filter:brightness(.85)}
 .seg-locked{pointer-events:none}
-.segment path{transition:filter .15s ease-out;stroke:var(--bg);stroke-width:.8}
+.segment path{transition:filter .15s ease-out,opacity .15s ease-out;stroke:var(--bg);stroke-width:.8}
+@keyframes seg-flash{
+  0%{filter:brightness(1.6) saturate(1.4);transform-origin:center;transform:scale(1.03);opacity:1}
+  40%{filter:brightness(1.25) saturate(1.15);transform:scale(1.01);opacity:1}
+  100%{filter:brightness(1) saturate(1);transform:scale(1);opacity:1}
+}
+.seg-path.flash{animation:seg-flash .35s ease-out forwards}
 
 /* ── Beat Info ── */
 .beat-info{
@@ -206,6 +215,7 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 }
 .beat-labels span.active{background:var(--active-bg);color:var(--bg)!important}
 .beat-labels .sep{color:var(--text3);padding:0;font-weight:400}
+.beat-labels .sep-dash{padding:0 1px}
 
 /* ── Carousel ── */
 .carousel{
@@ -926,12 +936,14 @@ function scheduler() {
     if (onScheduledEvent) onScheduledEvent(stepIndex, time, event, rightNext, leftNext);
     nextNoteTime = time + (event.units * secondsPerBeat());
     currentStep = (currentStep + 1) % pattern.length;
+    if (currentStep === 0) pulseUnitAcc = 0;
   }
 }
 
 async function startTransport() {
   if (audioCtx.state === "suspended") await audioCtx.resume();
   currentStep = 0;
+  pulseUnitAcc = 0;
   nextNoteTime = audioCtx.currentTime + TRANSPORT_START_DELAY;
   cycleStartTime = nextNoteTime;
   timerId = setInterval(scheduler, LOOKAHEAD_MS);
@@ -1184,7 +1196,7 @@ document.getElementById("segmentRing").addEventListener("click", e => {
   if (audioCtx.state === "suspended") audioCtx.resume();
   const now = audioCtx.currentTime + 0.02;
   const spb = secondsPerBeat();
-  const farFuture = now + 2;
+  const farFuture = now + seg.units * spb + 2;
   const evIdx0 = seg.startIdx;
   const totalMs = seg.units * spb * 1000;
 
@@ -1239,6 +1251,70 @@ function resizeSweepCanvas() {
   sweepCanvas.style.height = w + "px";
 }
 
+let tipPulse = 0;
+let tipPulseTime = 0;
+const TIP_PULSE_DECAY = 5; // per second
+
+function triggerTipPulse() {
+  tipPulse = 1;
+  tipPulseTime = performance.now();
+}
+
+function drawHand(cx, cy, ex, ey, r, vol) {
+  const dpr = devicePixelRatio;
+  const sweepColor = getComputedStyle(document.body).getPropertyValue("--sweep").trim();
+  const glowColor = getComputedStyle(document.body).getPropertyValue("--sweep-glow").trim();
+
+  // Tapered gradient line
+  const grad = sweepCtx.createLinearGradient(cx, cy, ex, ey);
+  grad.addColorStop(0, "transparent");
+  grad.addColorStop(0.15, sweepColor);
+  grad.addColorStop(1, sweepColor);
+
+  // Soft glow layer
+  if (vol > 0.1) {
+    sweepCtx.save();
+    sweepCtx.shadowColor = glowColor;
+    sweepCtx.shadowBlur = (8 + vol * 12) * dpr;
+    sweepCtx.strokeStyle = glowColor;
+    sweepCtx.lineWidth = (3 + vol * 4) * dpr;
+    sweepCtx.lineCap = "round";
+    sweepCtx.beginPath();
+    sweepCtx.moveTo(cx, cy);
+    sweepCtx.lineTo(ex, ey);
+    sweepCtx.stroke();
+    sweepCtx.restore();
+  }
+
+  // Main hand with gradient
+  sweepCtx.strokeStyle = grad;
+  sweepCtx.lineWidth = (1.5 + vol * 1.5) * dpr;
+  sweepCtx.lineCap = "round";
+  sweepCtx.beginPath();
+  sweepCtx.moveTo(cx, cy);
+  sweepCtx.lineTo(ex, ey);
+  sweepCtx.stroke();
+
+  // Tip pulse decay
+  const dtSec = (performance.now() - tipPulseTime) / 1000;
+  tipPulse = Math.max(0, 1 - dtSec * TIP_PULSE_DECAY);
+  const p = tipPulse * vol;
+
+  // Tip dot: base radius 3.5, pulse expands to +4
+  const baseR = 3.5 * dpr;
+  const tipR = baseR + p * 4 * dpr;
+  const tipGlow = (8 + vol * 10 + p * 20) * dpr;
+
+  sweepCtx.save();
+  sweepCtx.shadowColor = sweepColor;
+  sweepCtx.shadowBlur = tipGlow;
+  sweepCtx.fillStyle = sweepColor;
+  sweepCtx.beginPath();
+  sweepCtx.arc(ex, ey, tipR, 0, Math.PI * 2);
+  sweepCtx.fill();
+  sweepCtx.restore();
+}
+
 function drawSweep() {
   if (!isPlaying) return;
   const w = sweepCanvas.width, h = sweepCanvas.height;
@@ -1259,64 +1335,16 @@ function drawSweep() {
   const vol = volume / VOL_MAX;
 
   if (diskMode) {
-    // Disk mode: rotate SVG, hand fixed at 12 o'clock
     const svgEl = document.getElementById("segmentRing");
     svgEl.style.transform = `rotate(${-progress * 360}deg)`;
-
-    const ex = cx;
-    const ey = cy - r;
-
-    // Glow
-    if (vol > 0.1) {
-      sweepCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--sweep-glow").trim();
-      sweepCtx.lineWidth = (4 + vol * 6) * devicePixelRatio;
-      sweepCtx.lineCap = "round";
-      sweepCtx.beginPath();
-      sweepCtx.moveTo(cx, cy);
-      sweepCtx.lineTo(ex, ey);
-      sweepCtx.stroke();
-    }
-
-    // Main hand
-    sweepCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--sweep").trim();
-    sweepCtx.lineWidth = (1.5 + vol * 1.5) * devicePixelRatio;
-    sweepCtx.lineCap = "round";
-    sweepCtx.beginPath();
-    sweepCtx.moveTo(cx, cy);
-    sweepCtx.lineTo(ex, ey);
-    sweepCtx.stroke();
+    drawHand(cx, cy, cx, cy - r, r, vol);
   } else {
-    // Normal mode: SVG fixed, hand rotates
     const angle = progress * 2 * Math.PI - Math.PI / 2;
     const ex = cx + r * Math.cos(angle);
     const ey = cy + r * Math.sin(angle);
-
-    // Glow
-    if (vol > 0.1) {
-      sweepCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--sweep-glow").trim();
-      sweepCtx.lineWidth = (4 + vol * 6) * devicePixelRatio;
-      sweepCtx.lineCap = "round";
-      sweepCtx.beginPath();
-      sweepCtx.moveTo(cx, cy);
-      sweepCtx.lineTo(ex, ey);
-      sweepCtx.stroke();
-    }
-
-    // Main hand
-    sweepCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue("--sweep").trim();
-    sweepCtx.lineWidth = (1.5 + vol * 1.5) * devicePixelRatio;
-    sweepCtx.lineCap = "round";
-    sweepCtx.beginPath();
-    sweepCtx.moveTo(cx, cy);
-    sweepCtx.lineTo(ex, ey);
-    sweepCtx.stroke();
+    drawHand(cx, cy, ex, ey, r, vol);
   }
 
-  // Center dot
-  sweepCtx.fillStyle = getComputedStyle(document.body).getPropertyValue("--sweep").trim();
-  sweepCtx.beginPath();
-  sweepCtx.arc(cx, cy, 3 * devicePixelRatio, 0, Math.PI * 2);
-  sweepCtx.fill();
 
   // Update active beat label (karaoke)
   updateKaraokeHighlight(progress);
@@ -1345,11 +1373,13 @@ function stopSweepAnimation() {
 function pulseSegment(segIndex) {
   const vol = volume / VOL_MAX;
   if (vol < 0.05) return;
+  triggerTipPulse();
   const path = document.querySelector(`.seg-path[data-seg="${segIndex}"]`);
   if (!path) return;
-  const brightness = 1 + 0.4 * vol;
-  path.style.filter = `brightness(${brightness})`;
-  setTimeout(() => { path.style.filter = ""; }, 150);
+  path.classList.remove("flash");
+  void path.offsetWidth;
+  path.classList.add("flash");
+  path.addEventListener("animationend", () => path.classList.remove("flash"), { once: true });
 }
 
 // ── Hand Guidance Bars ──────────────────────────────────────────
@@ -1410,8 +1440,8 @@ function formatLabelDisplay(lbl) {
 
 function getSepAfter(label, nextLabel) {
   const base = label.replace(/[0-9½.]/g, "");
-  if (base === "te" || base === "ta") return " - ";
-  if (base === "tek" && nextLabel && nextLabel.replace(/[0-9½.]/g, "") === "kâ") return " - ";
+  if (base === "te" || base === "ta") return "-";
+  if (base === "tek" && nextLabel && nextLabel.replace(/[0-9½.]/g, "") === "kâ") return "-";
   return " · ";
 }
 
@@ -1420,13 +1450,33 @@ function buildBeatLabels() {
   container.innerHTML = "";
   beatLabelSpans = [];
 
+  let dashGroup = null;
   pattern.forEach((ev, i) => {
+    const prevSep = i > 0 ? getSepAfter(pattern[i - 1].label, ev.label) : null;
+    const isDash = prevSep && prevSep.trim() === "-";
+
+    if (i > 0 && !isDash && dashGroup) {
+      container.appendChild(dashGroup);
+      dashGroup = null;
+    }
+
     if (i > 0) {
       const sep = document.createElement("span");
-      sep.className = "sep";
-      sep.textContent = getSepAfter(pattern[i - 1].label, ev.label);
-      container.appendChild(sep);
+      sep.className = isDash ? "sep sep-dash" : "sep";
+      sep.textContent = prevSep;
+      if (isDash) {
+        if (!dashGroup) {
+          dashGroup = document.createElement("span");
+          dashGroup.style.whiteSpace = "nowrap";
+          const prev = container.lastElementChild;
+          if (prev) { container.removeChild(prev); dashGroup.appendChild(prev); }
+        }
+        dashGroup.appendChild(sep);
+      } else {
+        container.appendChild(sep);
+      }
     }
+
     const span = document.createElement("span");
     span.textContent = formatLabelDisplay(ev.label);
     span.dataset.eventIdx = i;
@@ -1434,9 +1484,14 @@ function buildBeatLabels() {
     if (segIdx !== undefined) {
       span.style.color = getSegColor(visualSegments[segIdx].type);
     }
-    container.appendChild(span);
+    if (dashGroup) {
+      dashGroup.appendChild(span);
+    } else {
+      container.appendChild(span);
+    }
     beatLabelSpans.push(span);
   });
+  if (dashGroup) container.appendChild(dashGroup);
 
   fitBeatLabels();
 
@@ -1534,14 +1589,19 @@ function clearKaraokeHighlight() {
 }
 
 // ── onScheduledEvent callback ───────────────────────────────────
+let pulseUnitAcc = 0;
 onScheduledEvent = function(stepIndex, audioTime, event, rightNext, leftNext) {
   const segIdx = eventToSegment[stepIndex];
   if (segIdx !== undefined) pulseSegment(segIdx);
   const delayMs = Math.max(0, (audioTime - audioCtx.currentTime) * 1000);
   const spbMs = secondsPerBeat() * 1000;
-  const wholeBeats = Math.floor(event.units);
-  for (let u = 0; u < wholeBeats; u++) {
-    setTimeout(pulseRing, delayMs + u * spbMs);
+  const prevAcc = pulseUnitAcc;
+  pulseUnitAcc += event.units;
+  const firstPulse = Math.ceil(prevAcc);
+  const lastPulse = Math.ceil(pulseUnitAcc) - 1;
+  for (let p = firstPulse; p <= lastPulse; p++) {
+    const offsetUnits = p - prevAcc;
+    setTimeout(pulseRing, delayMs + offsetUnits * spbMs);
   }
   const segUnits = segIdx !== undefined ? visualSegments[segIdx].units : event.units;
   triggerHandBar(event, audioTime, rightNext, leftNext, segUnits);
