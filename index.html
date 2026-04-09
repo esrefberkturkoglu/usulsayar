@@ -101,7 +101,7 @@ body:not([data-compact="true"]) .app-footer{min-height:60px;background:transpare
 [data-compact="true"] .controls{background:transparent;border-top:none}
 [data-compact="true"] .carousel{background:transparent;border-top:none}
 [data-compact="true"] .app-footer{background:transparent;border-top:none}
-[data-compact="true"] .viz-area{gap:12px;padding-bottom:12px;padding-top:4px}
+[data-compact="true"] .viz-area{gap:10px;padding-bottom:2px;padding-top:4px}
 
 /* ── Controls ── */
 .controls{
@@ -113,23 +113,23 @@ body:not([data-compact="true"]) .app-footer{min-height:60px;background:transpare
   width:72px;height:44px;border:none;border-radius:22px;
   font-size:17px;font-weight:800;letter-spacing:.5px;cursor:pointer;
   background:var(--dum);color:#fff;transition:background .2s,transform .1s;
-  position:relative;z-index:1;
+  position:relative;z-index:20;
 }
 .btn-play:active{transform:scale(.95)}
 [data-playing="false"] .btn-play{animation:vur-breathe 2s ease-in-out infinite}
 @keyframes vur-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 [data-playing="true"] .btn-play{background:#666;animation:none}
 .btn-play::after{
-  content:'';position:absolute;inset:-4px;border-radius:26px;
+  content:'';position:absolute;inset:-8px;border-radius:30px;
   pointer-events:none;z-index:-1;
 }
 [data-playing="false"] .btn-play::after{
   animation:vur-halo 2s ease-out infinite;
-  box-shadow:0 0 0 0 color-mix(in srgb,var(--dum) 50%,transparent);
+  box-shadow:0 0 0 0 color-mix(in srgb,var(--dum) 60%,transparent);
 }
 @keyframes vur-halo{
-  0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--dum) 40%,transparent)}
-  70%{box-shadow:0 0 8px 10px transparent}
+  0%{box-shadow:0 0 4px 0px color-mix(in srgb,var(--dum) 55%,transparent)}
+  50%{box-shadow:0 0 16px 18px color-mix(in srgb,var(--dum) 15%,transparent)}
   100%{box-shadow:0 0 0 0 transparent}
 }
 .slider-group{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--bg3)}
@@ -233,9 +233,10 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
   width:100%;max-width:calc(100% - 32px);
   text-align:center;padding:4px 0;
   display:flex;flex-direction:column;align-items:center;gap:2px;
-  justify-content:center;overflow:hidden;z-index:5;flex-shrink:0;
+  justify-content:flex-end;overflow:hidden;z-index:5;flex-shrink:0;
   min-height:52px;
 }
+.beat-info:has(.fitted){justify-content:center}
 .beat-labels{
   white-space:nowrap;line-height:1.3;font-weight:600;
   display:flex;gap:0;justify-content:center;
@@ -981,14 +982,13 @@ function scheduler() {
     if (onScheduledEvent) onScheduledEvent(stepIndex, time, event, rightNext, leftNext);
     nextNoteTime = time + (event.units * secondsPerBeat());
     currentStep = (currentStep + 1) % pattern.length;
-    if (currentStep === 0) { pulseUnitAcc = 0; volPulseHalfAcc = 0; }
+    if (currentStep === 0) { volPulseHalfAcc = 0; }
   }
 }
 
 async function startTransport() {
   if (audioCtx.state === "suspended") await audioCtx.resume();
   currentStep = 0;
-  pulseUnitAcc = 0;
   volPulseHalfAcc = 0;
   nextNoteTime = audioCtx.currentTime + TRANSPORT_START_DELAY;
   cycleStartTime = nextNoteTime;
@@ -1416,16 +1416,21 @@ function stopSweepAnimation() {
 }
 
 // ── Segment Pulse ───────────────────────────────────────────────
+const SEG_FLASH_KEYFRAMES = [
+  { filter: 'brightness(1.6) saturate(1.4)', transform: 'scale(1.03)', offset: 0 },
+  { filter: 'brightness(1.25) saturate(1.15)', transform: 'scale(1.01)', offset: 0.4 },
+  { filter: 'brightness(1) saturate(1)', transform: 'scale(1)', offset: 1 }
+];
 function pulseSegment(segIndex) {
   const vol = volume / VOL_MAX;
   if (vol < 0.05) return;
   triggerTipPulse();
   const path = document.querySelector(`.seg-path[data-seg="${segIndex}"]`);
   if (!path) return;
-  path.classList.remove("flash");
-  void path.offsetWidth;
-  path.classList.add("flash");
-  path.addEventListener("animationend", () => path.classList.remove("flash"), { once: true });
+  const spbMs = secondsPerBeat() * 1000;
+  const dur = Math.max(100, Math.min(350, spbMs * 0.35));
+  path.getAnimations().forEach(a => a.cancel());
+  path.animate(SEG_FLASH_KEYFRAMES, { duration: dur, easing: 'ease-out' });
 }
 
 // ── Hand Guidance Bars ──────────────────────────────────────────
@@ -1627,20 +1632,16 @@ function clearKaraokeHighlight() {
 }
 
 // ── onScheduledEvent callback ───────────────────────────────────
-let pulseUnitAcc = 0;
 let volPulseHalfAcc = 0;
 onScheduledEvent = function(stepIndex, audioTime, event, rightNext, leftNext) {
-  const segIdx = eventToSegment[stepIndex];
-  if (segIdx !== undefined) pulseSegment(segIdx);
   const delayMs = Math.max(0, (audioTime - audioCtx.currentTime) * 1000);
   const spbMs = secondsPerBeat() * 1000;
-  const prevAcc = pulseUnitAcc;
-  pulseUnitAcc += event.units;
-  const firstPulse = Math.ceil(prevAcc);
-  const lastPulse = Math.ceil(pulseUnitAcc) - 1;
-  for (let p = firstPulse; p <= lastPulse; p++) {
-    const offsetUnits = p - prevAcc;
-    setTimeout(pulseRing, delayMs + offsetUnits * spbMs);
+  const segIdx = eventToSegment[stepIndex];
+  if (segIdx !== undefined) setTimeout(() => pulseSegment(segIdx), delayMs);
+  // Ring pulse: once at event start + extra at each unit boundary within multi-unit events
+  setTimeout(pulseRing, delayMs);
+  for (let u = 1; u < event.units; u++) {
+    setTimeout(pulseRing, delayMs + u * spbMs);
   }
   const segUnits = segIdx !== undefined ? visualSegments[segIdx].units : event.units;
   triggerHandBar(event, audioTime, rightNext, leftNext, segUnits);
@@ -1656,18 +1657,19 @@ onScheduledEvent = function(stepIndex, audioTime, event, rightNext, leftNext) {
         tb.classList.remove("pulse"); void tb.offsetWidth; tb.classList.add("pulse");
       }
     }, delayMs);
-    // Volume icon pulse — 2× per unit
+    // Volume icon pulse — 2× per unit (≤166 BPM), 1× per unit (>166 BPM)
     const vi = document.getElementById("volumeIcon");
-    const halfSpbMs = spbMs / 2;
-    const prevHalf = volPulseHalfAcc;
-    volPulseHalfAcc += event.units * 2;
-    const fh = Math.ceil(prevHalf);
-    const lh = Math.ceil(volPulseHalfAcc) - 1;
-    for (let h = fh; h <= lh; h++) {
-      const off = h - prevHalf;
+    const pulsesPerUnit = bpm > 166 ? 1 : 2;
+    const stepMs = spbMs / pulsesPerUnit;
+    const prevAcc = volPulseHalfAcc;
+    volPulseHalfAcc += event.units * pulsesPerUnit;
+    const fp = Math.ceil(prevAcc);
+    const lp = Math.ceil(volPulseHalfAcc) - 1;
+    for (let p = fp; p <= lp; p++) {
+      const off = p - prevAcc;
       setTimeout(() => {
         vi.classList.remove("pulse"); void vi.offsetWidth; vi.classList.add("pulse");
-      }, delayMs + off * halfSpbMs);
+      }, delayMs + off * stepMs);
     }
   }
 };
