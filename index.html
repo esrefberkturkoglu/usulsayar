@@ -62,39 +62,29 @@ body{
 }
 [data-compact="true"] .controls:has(.controls-panel.open) #toggle{grid-column:1/-1;justify-self:center;order:-1}
 [data-compact="true"] .controls:has(.controls-panel.open) #headerToggle{display:none!important}
-[data-compact="true"] .controls:has(.controls-panel.open) .slider-group{
-  border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--bg3);
-}
+[data-compact="true"] .controls-panel .slider-group,[data-compact="true"] .controls:has(.controls-panel.open) .slider-group{justify-content:center}
 [data-compact="true"] #tekGroup{order:1}
 [data-compact="true"] #dumGroup{order:2}
 [data-compact="true"] #bpmGroup{order:3}
-[data-compact="true"] #volumeGroup{order:4;flex-direction:row-reverse}
-[data-compact="true"] #bpmInc{order:1}
-[data-compact="true"] #bpmGroup .spinbox-wrap{order:2}
-[data-compact="true"] #bpmGroup .group-icon{order:3}
-[data-compact="true"] #tekInc{order:1}
-[data-compact="true"] #tekGroup .spinbox-wrap{order:2}
-[data-compact="true"] #tekMute{order:3}
-[data-compact="true"] #dumInc{order:1}
-[data-compact="true"] #dumGroup .spinbox-wrap{order:2}
-[data-compact="true"] #dumMute{order:3}
-[data-compact="true"] .controls-panel .slider-group,[data-compact="true"] .controls:has(.controls-panel.open) .slider-group{width:166.72px;justify-content:center}
-[data-compact="true"] .slider-group .group-icon,[data-compact="true"] .slider-group .mute-label{min-width:28px;text-align:center;box-sizing:border-box}
+[data-compact="true"] #volumeGroup{order:4}
 [data-compact="true"] .app-footer{flex-wrap:wrap;justify-content:flex-start}
-[data-compact="true"] .app-footer:has(#renderPanel.open){flex-wrap:wrap-reverse}
+[data-compact="true"] .app-footer:has(#renderPanel.panel-visible){flex-wrap:wrap-reverse}
 [data-compact="true"] .footer-left{position:static;transform:none;order:1;flex:1;min-width:0;font-size:12px;align-self:flex-end}
-[data-compact="true"] .app-footer:has(#renderPanel.open) .footer-left{align-self:flex-start}
+[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) .footer-left{align-self:flex-start}
 [data-compact="true"] .footer-center{display:contents}
 [data-compact="true"] #footerToggle{order:2}
 [data-compact="true"] .mode-group{display:none}
-[data-compact="true"] .app-footer:has(#renderPanel.open) .mode-group{display:flex;position:absolute;right:14px;top:8px;gap:8px}
+[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) .mode-group{display:flex;position:absolute;right:14px;top:8px;gap:8px}
 [data-compact="true"] .footer-right{position:static;transform:none;order:3;flex:1;min-width:0;font-size:12px;text-align:right;align-self:flex-end}
-[data-compact="true"] .app-footer:has(#renderPanel.open) .footer-right{align-self:flex-start}
+[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) .footer-right{align-self:flex-start}
+[data-compact="true"] #renderStatus{display:none}
+[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) #renderStatus:not(:empty){display:block;position:absolute;left:154px;right:94px;top:10px;font-size:9px;text-align:left;word-break:break-word;line-height:1.2;overflow:hidden;max-height:2.4em}
 [data-compact="true"] #renderPanel{order:5;flex-basis:100%;display:none}
-[data-compact="true"] #renderPanel.open{display:flex;justify-content:flex-start;flex-wrap:nowrap}
+[data-compact="true"] #renderPanel.panel-visible{display:flex;justify-content:flex-start;flex-wrap:nowrap;padding-right:80px;gap:6px}
 
 /* ── Desktop bar overrides ── */
-body:not([data-compact="true"]) .controls{min-height:60px;background:transparent;border-top:none}
+body:not([data-compact="true"]) .controls{min-height:60px;background:transparent;border-top:none;gap:59px}
+body:not([data-compact="true"]) .controls-panel{gap:44px}
 body:not([data-compact="true"]) .carousel{background:transparent;border-top:none}
 body:not([data-compact="true"]) .app-footer{min-height:60px;background:transparent;border-top:none}
 /* ── Mobile bar overrides ── */
@@ -102,6 +92,11 @@ body:not([data-compact="true"]) .app-footer{min-height:60px;background:transpare
 [data-compact="true"] .carousel{background:transparent;border-top:none}
 [data-compact="true"] .app-footer{background:transparent;border-top:none}
 [data-compact="true"] .viz-area{gap:10px;padding-bottom:2px;padding-top:4px}
+/* ── Mobile: groups always open, no collapse, no arrows, symmetric padding ── */
+[data-compact="true"] .slider-group{gap:6px;border-color:var(--border);padding:6px 8px;background:var(--bg3)}
+[data-compact="true"] #volumeGroup{border-color:var(--border);background:var(--bg3)}
+[data-compact="true"] .group-expand{max-width:none!important;opacity:1!important;overflow:visible}
+[data-compact="true"] .group-expand-handle{display:none!important}
 
 /* ── Controls ── */
 .controls{
@@ -132,12 +127,54 @@ body:not([data-compact="true"]) .app-footer{min-height:60px;background:transpare
   50%{box-shadow:0 0 16px 18px color-mix(in srgb,var(--dum) 15%,transparent)}
   100%{box-shadow:0 0 0 0 transparent}
 }
-.slider-group{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--bg3)}
+.slider-group,.render-row{position:relative}
+.slider-group{
+  display:flex;align-items:center;gap:0;font-size:12px;color:var(--text2);
+  border:1px solid transparent;border-radius:8px;padding:0;background:transparent;
+  transition:border-color .25s,background .25s,padding .25s,gap .25s;
+}
+.slider-group.open{gap:6px;border-color:var(--border);padding:6px 8px;background:var(--bg3)}
+#volumeGroup.open{border-color:transparent;background:transparent}
+/* ── Collapsible group expand ── */
+.group-expand{
+  display:flex;align-items:center;gap:6px;
+  overflow:hidden;max-width:0;opacity:0;
+  transition:max-width .3s cubic-bezier(.4,0,.2,1),opacity .2s ease;
+  white-space:nowrap;
+}
+.slider-group.open .group-expand,.render-row.open .group-expand{max-width:170px;opacity:1}
+#volumeGroup .group-expand{transition:max-width .15s cubic-bezier(.4,0,.2,1),opacity .1s ease}
+#volumeGroup.open .group-expand{max-width:145px}
+#renderPanel.open .group-expand{max-width:110px}
+.group-expand-handle{
+  position:absolute;top:0;bottom:0;width:16px;
+  display:flex;align-items:center;justify-content:center;
+  background:none;border:none;padding:0;color:var(--text3);
+  cursor:pointer;z-index:2;
+  opacity:0;pointer-events:none;transition:opacity .2s,background .2s;
+  border-radius:4px;
+}
+.slider-group.open>.group-expand-handle,.render-row.open>.group-expand-handle{opacity:.6;pointer-events:auto;background:color-mix(in srgb,var(--text3) 10%,transparent)}
+.group-expand-handle:hover{opacity:1!important;background:color-mix(in srgb,var(--text3) 20%,transparent)!important}
+.group-expand-handle:active{opacity:1!important;background:color-mix(in srgb,var(--text3) 30%,transparent)!important}
+[data-expand="rtl"]>.group-expand-handle{left:0}
+[data-expand="ltr"]>.group-expand-handle{right:0}
+#bpmGroup>.group-expand-handle,#tekGroup>.group-expand-handle{left:auto;right:0}
+#dumGroup>.group-expand-handle{right:auto;left:0}
+.group-expand-handle svg{width:10px;height:100%;max-height:48px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
 .slider-group label{width:62px;text-align:right;flex-shrink:0}
-.slider-group label.mute-label{width:auto}
-body:not([data-compact="true"]) #tekMute{text-align:left}
+.slider-group label.mute-label{width:34px;min-width:34px}
 .icon-group{position:relative}
-.group-icon{font-size:18px;opacity:.7;flex-shrink:0}
+.group-icon{
+  font-size:18px;flex-shrink:0;cursor:pointer;
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px solid var(--border);background:var(--bg3);
+  color:var(--text);transition:border-color .15s,background .15s,transform .1s;
+  position:relative;z-index:3;
+}
+.group-icon:hover{border-color:var(--text2);background:color-mix(in srgb,var(--text) 8%,transparent)}
+.group-icon:active{transform:scale(.92)}
 @keyframes bpm-pulse{0%{transform:scale(1)}15%{transform:scale(1.35)}100%{transform:scale(1)}}
 #bpmIcon.pulse,#volumeIcon.pulse{animation:bpm-pulse .25s ease-out}
 @keyframes mute-pulse{0%{transform:scale(1);opacity:1}15%{transform:scale(1.25);opacity:1}100%{transform:scale(1);opacity:1}}
@@ -145,7 +182,7 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 @keyframes ring-pulse{0%{transform:scale(1)}15%{transform:scale(var(--pulse-scale,1.04))}100%{transform:scale(1)}}
 .viz-container.ring-pulse{animation:ring-pulse var(--pulse-dur,.25s) ease-out}
 .slider-group input[type="range"]{
-  -webkit-appearance:none;appearance:none;width:136px;height:6px;
+  -webkit-appearance:none;appearance:none;width:126px;height:6px;
   background:var(--ctrl-track);border-radius:3px;outline:none;cursor:pointer;
 }
 .slider-group input[type="range"]::-webkit-slider-thumb{
@@ -156,14 +193,24 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
   width:14px;height:14px;border-radius:50%;border:none;
   background:var(--ctrl-thumb);cursor:pointer;
 }
+#volumeGroup input[type="range"]{height:22px;background:transparent}
+#volumeGroup input[type="range"]::-webkit-slider-runnable-track{height:6px;background:var(--ctrl-track);border-radius:3px}
+#volumeGroup input[type="range"]::-webkit-slider-thumb{width:22px;height:22px;margin-top:-8px}
+#volumeGroup input[type="range"]::-moz-range-track{height:6px;background:var(--ctrl-track);border-radius:3px}
+#volumeGroup input[type="range"]::-moz-range-thumb{width:22px;height:22px}
+#bpmGroup,#tekGroup,#dumGroup{padding:6px 8px;gap:6px}
+#volumeGroup{width:184px;min-width:184px;height:48px;min-height:48px;padding:6px 8px;gap:6px}
 .spinbox-wrap{position:relative;display:inline-flex;align-items:center}
 .spinbox{
-  width:68px;padding:2px 26px 2px 4px;font-size:12px;text-align:center;
+  width:58px;padding:2px 26px 2px 4px;font-size:12px;text-align:center;
   background:var(--ctrl-bg);color:var(--text);border:1px solid var(--border);border-radius:4px;
 }
+#tekGroup .spinbox,#dumGroup .spinbox{padding-left:0;padding-right:21px}
+#bpmGroup .spinbox{padding-left:0}
 .spinbox::-webkit-inner-spin-button,.spinbox::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .spinbox{-moz-appearance:textfield}
-.spinbox-unit{position:absolute;right:5px;font-size:9px;color:var(--text3);pointer-events:none}
+.spinbox-unit{position:absolute;right:5px;font-size:11px;font-weight:600;color:var(--text2);pointer-events:none}
+#tekGroup .spinbox-unit,#dumGroup .spinbox-unit{right:auto;left:35px}
 .bpm-step-btn{
   width:28px;height:28px;border:1px solid var(--border);border-radius:50%;
   background:var(--bg3);color:var(--text);font-size:16px;font-weight:700;
@@ -173,13 +220,18 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 .bpm-step-btn:active{background:var(--ctrl-track)}
 .repeat-step-btn{width:22px;height:22px;font-size:13px}
 .mute-label{
-  cursor:pointer;user-select:none;transition:opacity .2s,background .15s;
-  border:1.5px solid;border-radius:10px;padding:2px 8px;font-weight:600;
+  cursor:pointer;user-select:none;
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:15px;
+  border:1.5px solid;background:var(--bg3);
+  position:relative;z-index:3;
+  transition:opacity .2s,background .15s,transform .1s,border-color .15s;
 }
 .mute-label[data-voice="dum"]{color:var(--dum);border-color:var(--dum)}
 .mute-label[data-voice="tek"]{color:var(--tek);border-color:var(--tek)}
-.mute-label:hover{background:color-mix(in srgb,currentColor 15%,transparent)}
-.mute-label:active{background:color-mix(in srgb,currentColor 25%,transparent)}
+.mute-label:hover{background:color-mix(in srgb,currentColor 12%,transparent)}
+.mute-label:active{transform:scale(.92)}
 .mute-label[aria-pressed="true"]{opacity:.3;text-decoration:line-through}
 .mode-group{display:flex;align-items:center;gap:6px}
 .disk-btn,.theme-btn{
@@ -321,14 +373,26 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 .footer-left a:hover{text-decoration:underline}
 .footer-left a:active{color:var(--tek)}
 .footer-center{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
-.render-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;order:-1}
-#repeatCount{width:76px;padding-right:40px}
+.render-row{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;order:-1}
+body:not([data-compact="true"]) #renderPanel{padding:0;gap:0;border:none;border-radius:8px;background:transparent}
+body:not([data-compact="true"]) #renderPanel.open{padding:6px 8px;gap:6px;border:1px solid var(--border);background:var(--bg3)}
+body:not([data-compact="true"]) #renderPanel>.group-expand-handle{left:auto;right:0}
+#repeatCount{width:42px;padding-right:14px;padding-left:2px}
+#renderPanel .spinbox-unit{right:4px;font-size:15px;color:var(--text)}
 .btn-save{
-  padding:4px 12px;border:1px solid var(--border);border-radius:4px;
-  background:var(--bg3);color:var(--text);font-size:12px;cursor:pointer;
+  width:32px;height:32px;border:1px solid var(--border);border-radius:50%;
+  background:var(--bg3);color:var(--text);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color .15s,background .15s,transform .1s;padding:0;
+  position:relative;z-index:3;
 }
-.btn-save:hover{border-color:var(--text2)}
+.btn-save:hover{border-color:var(--text2);background:color-mix(in srgb,var(--text) 8%,transparent)}
+.btn-save:active{transform:scale(.92)}
+.btn-save svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
 .render-status{font-size:11px;color:var(--text2)}
+.render-status:empty{display:none}
+@keyframes status-fade{0%,30%{opacity:1}100%{opacity:0}}
+.render-status.fading{animation:status-fade 10s ease-out forwards}
 .footer-right{white-space:nowrap}
 .footer-right a{color:var(--tek);text-decoration:none}
 .footer-right a:hover{text-decoration:underline}
@@ -340,34 +404,31 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 <header class="controls">
   <button class="mobile-toggle" id="headerToggle" aria-label="Kontrolleri aç/kapat" aria-expanded="false">&#9660;</button>
   <div class="controls-panel" id="controlsPanel">
-    <div class="slider-group bpm-group icon-group" id="bpmGroup">
-      <button class="bpm-step-btn" id="bpmDec" aria-label="BPM azalt">−</button>
-      <button class="bpm-step-btn" id="bpmInc" aria-label="BPM artır">+</button>
-      <span class="spinbox-wrap"><input id="bpmNumber" class="spinbox" type="number" min="33" max="333" step="1" value="60"/><span class="spinbox-unit">BPM</span></span>
+    <div class="slider-group bpm-group icon-group" id="bpmGroup" data-expand="rtl">
+      <button class="group-expand-handle" aria-label="Kapat"><svg viewBox="0 0 10 48"><polyline points="1 2 9 24 1 46"/></svg></button>
+      <div class="group-expand"><button class="bpm-step-btn" id="bpmDec" aria-label="BPM azalt">−</button><button class="bpm-step-btn" id="bpmInc" aria-label="BPM artır">+</button><span class="spinbox-wrap"><input id="bpmNumber" class="spinbox" type="number" min="33" max="333" step="1" value="60"/><span class="spinbox-unit">BPM</span></span></div>
       <span class="group-icon" id="bpmIcon">&#9200;</span>
     </div>
 
-    <div class="slider-group bpm-group" id="tekGroup">
-      <button class="bpm-step-btn" id="tekDec" aria-label="Tek frekans azalt">−</button>
-      <button class="bpm-step-btn" id="tekInc" aria-label="Tek frekans artır">+</button>
-      <span class="spinbox-wrap"><input id="tekFreqNumber" class="spinbox" type="number" min="33" max="333" step="1" value="147"/><span class="spinbox-unit">Hz</span></span>
-      <label class="mute-label" id="tekMute" data-voice="tek" aria-pressed="false" role="button" tabindex="0">TEK</label>
+    <div class="slider-group bpm-group" id="tekGroup" data-expand="rtl">
+      <button class="group-expand-handle" aria-label="Kapat"><svg viewBox="0 0 10 48"><polyline points="1 2 9 24 1 46"/></svg></button>
+      <div class="group-expand"><button class="bpm-step-btn" id="tekDec" aria-label="Tek frekans azalt">−</button><button class="bpm-step-btn" id="tekInc" aria-label="Tek frekans artır">+</button><span class="spinbox-wrap"><input id="tekFreqNumber" class="spinbox" type="number" min="33" max="333" step="1" value="147"/><span class="spinbox-unit">Hz</span></span></div>
+      <label class="mute-label" id="tekMute" data-voice="tek" aria-pressed="false" role="button" tabindex="0">T</label>
     </div>
   </div>
 
   <button id="toggle" class="btn-play">VUR</button>
 
   <div class="controls-panel" id="controlsPanel2">
-    <div class="slider-group bpm-group" id="dumGroup">
-      <label class="mute-label" id="dumMute" data-voice="dum" aria-pressed="false" role="button" tabindex="0">DÜM</label>
-      <span class="spinbox-wrap"><input id="dumFreqNumber" class="spinbox" type="number" min="33" max="333" step="1" value="98"/><span class="spinbox-unit">Hz</span></span>
-      <button class="bpm-step-btn" id="dumDec" aria-label="Düm frekans azalt">−</button>
-      <button class="bpm-step-btn" id="dumInc" aria-label="Düm frekans artır">+</button>
+    <div class="slider-group bpm-group" id="dumGroup" data-expand="ltr">
+      <label class="mute-label" id="dumMute" data-voice="dum" aria-pressed="false" role="button" tabindex="0">D</label>
+      <div class="group-expand"><span class="spinbox-wrap"><input id="dumFreqNumber" class="spinbox" type="number" min="33" max="333" step="1" value="98"/><span class="spinbox-unit">Hz</span></span><button class="bpm-step-btn" id="dumDec" aria-label="Düm frekans azalt">−</button><button class="bpm-step-btn" id="dumInc" aria-label="Düm frekans artır">+</button></div>
+      <button class="group-expand-handle" aria-label="Kapat"><svg viewBox="0 0 10 48"><polyline points="9 2 1 24 9 46"/></svg></button>
     </div>
 
-    <div class="slider-group icon-group" id="volumeGroup">
+    <div class="slider-group icon-group" id="volumeGroup" data-expand="ltr">
       <span class="group-icon" id="volumeIcon">&#128266;</span>
-      <input id="volume" type="range" min="0" max="100" value="100"/>
+      <div class="group-expand"><input id="volume" type="range" min="0" max="100" value="100"/></div>
     </div>
   </div>
 </header>
@@ -405,14 +466,13 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
       <button class="theme-btn" id="themeToggle" aria-label="Tema değiştir">☀</button>
       <button class="disk-btn" id="diskToggle" aria-pressed="false" aria-label="Disk modu" title="Disk modu"><svg viewBox="0 0 16 16" width="16" height="16" class="disk-icon"><circle cx="8" cy="8" r="7" fill="currentColor" stroke="none"/><path d="M8 1A7 7 0 0 1 8 15Z" fill="var(--bg)"/></svg></button>
     </div>
+    <span class="render-status" id="renderStatus"></span>
     <button class="mobile-toggle" id="footerToggle" aria-label="Kaydet panelini aç/kapat" aria-expanded="false">&#9650;</button>
   </div>
-  <div class="render-row" id="renderPanel">
-    <button class="bpm-step-btn repeat-step-btn" id="repeatDec" aria-label="Tekrar azalt">−</button>
-    <button class="bpm-step-btn repeat-step-btn" id="repeatInc" aria-label="Tekrar artır">+</button>
-    <span class="spinbox-wrap"><input id="repeatCount" class="spinbox" type="number" min="1" max="111" value="1"/><span class="spinbox-unit">TEKRAR</span></span>
-    <button id="renderWavBtn" class="btn-save" aria-label="WAV olarak kaydet">&#9660; KAYDET</button>
-    <span class="render-status" id="renderStatus"></span>
+  <div class="render-row" id="renderPanel" data-expand="rtl">
+    <button class="group-expand-handle" aria-label="Kapat"><svg viewBox="0 0 10 48"><polyline points="1 2 9 24 1 46"/></svg></button>
+    <div class="group-expand"><button class="bpm-step-btn repeat-step-btn" id="repeatDec" aria-label="Tekrar azalt">−</button><button class="bpm-step-btn repeat-step-btn" id="repeatInc" aria-label="Tekrar artır">+</button><span class="spinbox-wrap"><input id="repeatCount" class="spinbox" type="number" min="1" max="111" value="1"/><span class="spinbox-unit">&times;</span></span></div>
+    <button id="renderWavBtn" class="btn-save" aria-label="WAV olarak kaydet"><svg viewBox="0 0 24 24"><path d="M12 3v13M5 12l7 7 7-7"/><line x1="4" y1="21" x2="20" y2="21"/></svg></button>
   </div>
   <div class="footer-right"><a href="https://github.com/esrefberkturkoglu/usulsayar" target="_blank" rel="noopener">&#9741; GitHub</a></div>
 </footer>
@@ -704,14 +764,6 @@ function updateVolumeIcon() {
   el.style.cursor = "pointer";
 }
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("volumeIcon").addEventListener("click", () => {
-    if (volume > 0) {
-      volumeBeforeMute = volume;
-      setVolumeValue(0);
-    } else {
-      setVolumeValue(volumeBeforeMute || 100);
-    }
-  });
   startBpmPulse();
 });
 function setVolumeValue(value) {
@@ -995,22 +1047,41 @@ function scheduler() {
   }
 }
 
-async function startTransport() {
-  if (audioCtx.state === "suspended") await audioCtx.resume();
+let _countInTimer1 = null, _countInTimer2 = null;
+function cancelCountIn() {
+  clearTimeout(_countInTimer1); clearTimeout(_countInTimer2);
+  _countInTimer1 = _countInTimer2 = null;
+}
+
+function beginTransportAfterCountIn() {
   currentStep = 0;
   volPulseHalfAcc = 0;
   nextNoteTime = audioCtx.currentTime + TRANSPORT_START_DELAY;
   cycleStartTime = nextNoteTime;
   timerId = setInterval(scheduler, LOOKAHEAD_MS);
-  isPlaying = true;
-  document.body.dataset.playing = "true";
-  document.getElementById("toggle").textContent = "DUR";
-  fitBeatLabels();
-  startBpmPulse();
   startSweepAnimation();
 }
 
+async function startTransport() {
+  if (audioCtx.state === "suspended") await audioCtx.resume();
+  cancelCountIn();
+  isPlaying = true;
+  document.body.dataset.playing = "true";
+  document.getElementById("toggle").textContent = "DUR";
+  startBpmPulse();
+  const spbMs = secondsPerBeat() * 1000;
+  // Count-in: 2 preparatory ring pulses, playback starts on the 3rd
+  pulseRing();
+  _countInTimer1 = setTimeout(() => pulseRing(), spbMs);
+  _countInTimer2 = setTimeout(() => {
+    pulseRing();
+    beginTransportAfterCountIn();
+    fitBeatLabels();
+  }, spbMs * 2);
+}
+
 function stopTransport() {
+  cancelCountIn();
   clearInterval(timerId);
   timerId = null;
   isPlaying = false;
@@ -1026,22 +1097,39 @@ let _restartTimer = null;
 function restartTransportIfPlaying() {
   if (!isPlaying) return;
   const fadeSec = 0.015;
-  // Cancel any pending restart — prevent overlapping ramps
+  // Cancel any pending restart
   if (_restartTimer) { clearTimeout(_restartTimer); _restartTimer = null; }
-  // Immediately silence: cancel scheduled ramps, then ramp to 0
+  cancelCountIn();
+  // Fade out current audio
   gate.gain.cancelScheduledValues(audioCtx.currentTime);
   gate.gain.setValueAtTime(gate.gain.value, audioCtx.currentTime);
   gate.gain.linearRampToValueAtTime(0, audioCtx.currentTime + fadeSec);
   _restartTimer = setTimeout(() => {
     _restartTimer = null;
-    stopTransport();
-    startTransport();
-    const t = audioCtx.currentTime;
-    gate.gain.cancelScheduledValues(t);
-    if (!(dumMuted && tekMuted)) {
-      gate.gain.setValueAtTime(0, t);
-      gate.gain.linearRampToValueAtTime(1, t + fadeSec);
-    }
+    // Stop scheduler but keep isPlaying true
+    clearInterval(timerId); timerId = null;
+    stopSweepAnimation();
+    document.querySelector(".viz-container").classList.remove("ring-pulse");
+    // Apply fitted/shrink layout during count-in (bypass marquee since isPlaying is true)
+    isPlaying = false;
+    fitBeatLabels();
+    isPlaying = true;
+    // Count-in: 2 preparatory pulses, then restart on 3rd
+    const spbMs = secondsPerBeat() * 1000;
+    pulseRing();
+    _countInTimer1 = setTimeout(() => pulseRing(), spbMs);
+    _countInTimer2 = setTimeout(() => {
+      pulseRing();
+      beginTransportAfterCountIn();
+      startSweepAnimation();
+      fitBeatLabels();
+      const t = audioCtx.currentTime;
+      gate.gain.cancelScheduledValues(t);
+      if (!(dumMuted && tekMuted)) {
+        gate.gain.setValueAtTime(0, t);
+        gate.gain.linearRampToValueAtTime(1, t + fadeSec);
+      }
+    }, spbMs * 2);
   }, 20);
 }
 
@@ -1119,7 +1207,9 @@ async function renderSelectedPatternToWav() {
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
     renderStatus.textContent=`${fileName} oluşturuldu.`;
-  }catch(error){console.error(error);renderStatus.textContent="Kaydetme başarısız.";}
+    renderStatus.classList.remove("fading");renderStatus.offsetWidth;renderStatus.classList.add("fading");
+  }catch(error){console.error(error);renderStatus.textContent="Kaydetme başarısız.";
+    renderStatus.classList.remove("fading");renderStatus.offsetWidth;renderStatus.classList.add("fading");}
   finally{renderBtn.disabled=false;}
 }
 
@@ -1754,14 +1844,14 @@ function selectCarouselCard(idx) {
 }
 
 // Carousel: arrow buttons with hold-to-repeat
-function addHoldRepeat(btn, action, intervalMs = 500, delayMs = 400) {
+function addHoldRepeat(btn, action) {
   let timer = null, interval = null;
   const stop = () => { clearTimeout(timer); clearInterval(interval); timer = interval = null; };
   btn.addEventListener("pointerdown", e => {
     if (e.button !== 0) return;
     action();
     btn.setPointerCapture(e.pointerId);
-    timer = setTimeout(() => { interval = setInterval(action, intervalMs); }, delayMs);
+    timer = setTimeout(() => { interval = setInterval(action, 100); }, 250);
   });
   btn.addEventListener("pointerup", stop);
   btn.addEventListener("pointercancel", stop);
@@ -1770,15 +1860,12 @@ function addHoldRepeat(btn, action, intervalMs = 500, delayMs = 400) {
 addHoldRepeat(document.getElementById("carPrev"), () => selectCarouselCard(selectedCardIndex - 1));
 addHoldRepeat(document.getElementById("carNext"), () => selectCarouselCard(selectedCardIndex + 1));
 
-// Carousel: mouse wheel (debounced)
-let _wheelTimer = null;
+// Carousel: mouse wheel
 carouselTrack.addEventListener("wheel", e => {
   e.preventDefault();
-  if (_wheelTimer) return;
   const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
   if (delta > 0) selectCarouselCard(selectedCardIndex + 1);
   else if (delta < 0) selectCarouselCard(selectedCardIndex - 1);
-  _wheelTimer = setTimeout(() => { _wheelTimer = null; }, 120);
 }, { passive: false });
 
 // Carousel: drag (hasDragged ayırır tıklamayı sürüklemeden)
@@ -1934,21 +2021,10 @@ rebuildVisualization();
 requestAnimationFrame(() => resizeSweepCanvas());
 
 // ── Compact Mode Detection ─────────────────────────────────────
+// Min width for all 4 groups open + VUR + padding + gaps in a single row
+const COMPACT_BREAKPOINT = 880;
 function updateCompactMode() {
-  const body = document.body;
-  const header = document.querySelector('.controls');
-  // Close open panels before measuring
-  const p1 = document.getElementById("controlsPanel");
-  const p2 = document.getElementById("controlsPanel2");
-  const wasOpen = p1.classList.contains("open");
-  if (wasOpen) { p1.classList.remove("open"); p2.classList.remove("open"); }
-  // Temporarily force non-compact to measure natural header height
-  body.dataset.compact = 'false';
-  void header.offsetHeight; // force reflow
-  const wraps = header.scrollHeight > 68; // single row ~60px with group bg + padding
-  body.dataset.compact = String(wraps);
-  // Restore open state if it was open
-  if (wasOpen) { p1.classList.add("open"); p2.classList.add("open"); }
+  document.body.dataset.compact = String(window.innerWidth < COMPACT_BREAKPOINT);
 }
 updateCompactMode();
 window.addEventListener("resize", updateCompactMode);
@@ -1959,12 +2035,10 @@ diskToggleBtn.setAttribute("aria-pressed", "true");
 fitBeatLabels();
 
 if (document.body.dataset.compact === "true") {
-  // Open both menus via footer toggle
+  // Show panels (not group-expand — groups start collapsed)
   document.getElementById("controlsPanel").classList.add("open");
   document.getElementById("controlsPanel2").classList.add("open");
-  document.getElementById("tekMute").textContent = "T";
-  document.getElementById("dumMute").textContent = "D";
-  document.getElementById("renderPanel").classList.add("open");
+  document.getElementById("renderPanel").classList.add("panel-visible");
   const fBtn = document.getElementById("footerToggle");
   fBtn.setAttribute("aria-expanded", "true");
   fBtn.textContent = "\u25BC";
@@ -1981,14 +2055,12 @@ document.getElementById("headerToggle").addEventListener("click", () => {
   btn.textContent = open ? "\u25B2" : "\u25BC";
   if (document.body.dataset.compact === "true") {
     document.getElementById("toggle").style.display = "";
-    document.getElementById("tekMute").textContent = open ? "T" : "TEK";
-    document.getElementById("dumMute").textContent = open ? "D" : "DÜM";
   }
 });
 document.getElementById("footerToggle").addEventListener("click", () => {
   const panel = document.getElementById("renderPanel");
   const btn = document.getElementById("footerToggle");
-  const open = panel.classList.toggle("open");
+  const open = panel.classList.toggle("panel-visible");
   btn.setAttribute("aria-expanded", String(open));
   btn.textContent = open ? "\u25BC" : "\u25B2";
   // Sync header panels in compact mode
@@ -1998,10 +2070,120 @@ document.getElementById("footerToggle").addEventListener("click", () => {
     p1.classList.toggle("open", open);
     p2.classList.toggle("open", open);
     document.getElementById("toggle").style.display = "";
-    document.getElementById("tekMute").textContent = open ? "T" : "TEK";
-    document.getElementById("dumMute").textContent = open ? "D" : "DÜM";
   }
 });
+
+// ══════════════════════════════════════════════════════════════════
+// COLLAPSIBLE GROUP SYSTEM
+// ══════════════════════════════════════════════════════════════════
+
+(function() {
+  const SWIPE_CLOSE_PX = 30; // min drag distance (reserved for future use)
+
+  // All expandable groups (header + footer)
+  const expandGroups = document.querySelectorAll("[data-expand]");
+
+  // ── Generic open/close helpers ──
+  function openGroup(group) { group.classList.add("open"); }
+  function closeGroup(group) { group.classList.remove("open"); }
+  function isOpen(group) { return group.classList.contains("open"); }
+
+  // ── 1) Click-to-toggle for non-volume groups ──
+  // For BPM: click on bpmIcon toggles
+  // For TEK: click on tekMute toggles (when closed → open; when open → mute function)
+  // For DÜM: click on dumMute toggles (when closed → open; when open → mute function)
+  // For Render: click on renderWavBtn toggles (when closed → open; when open → render function)
+
+  function setupGroupToggle(group, triggerEl, actionFn) {
+    triggerEl.addEventListener("click", (e) => {
+      if (group.id === "volumeGroup") return; // volume handled separately
+      if (!isOpen(group)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        openGroup(group);
+      }
+      // If already open, let the original handler run (mute, render, etc.)
+    }, true); // capture phase to intercept before existing handlers
+  }
+
+  function isCompact() { return document.body.dataset.compact === "true"; }
+
+  // BPM group: clock icon opens when closed; when open, tap-tempo runs (close via handle)
+  const bpmGroup = document.getElementById("bpmGroup");
+  const bpmIcon = document.getElementById("bpmIcon");
+  bpmIcon.addEventListener("click", (e) => {
+    if (isCompact()) return; // mobile: always open, let tap-tempo run
+    if (!isOpen(bpmGroup)) {
+      e.stopImmediatePropagation();
+      openGroup(bpmGroup);
+    }
+  }, true);
+
+  // TEK group: T button opens when closed
+  const tekGroup = document.getElementById("tekGroup");
+  const tekMuteBtn = document.getElementById("tekMute");
+  tekMuteBtn.addEventListener("click", (e) => {
+    if (isCompact()) return; // mobile: always open, let mute run
+    if (!isOpen(tekGroup)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      openGroup(tekGroup);
+    }
+  }, true);
+
+  // DÜM group: D button opens when closed
+  const dumGroup = document.getElementById("dumGroup");
+  const dumMuteBtn = document.getElementById("dumMute");
+  dumMuteBtn.addEventListener("click", (e) => {
+    if (isCompact()) return; // mobile: always open, let mute run
+    if (!isOpen(dumGroup)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      openGroup(dumGroup);
+    }
+  }, true);
+
+  // Render group: download button opens when closed
+  const renderPanel = document.getElementById("renderPanel");
+  const renderBtn = document.getElementById("renderWavBtn");
+  renderBtn.addEventListener("click", (e) => {
+    if (isCompact()) return;
+    if (!isOpen(renderPanel)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      openGroup(renderPanel);
+    }
+    // If open → existing render handler runs
+  }, true);
+
+  // ── 2) Volume group: click = mute, hover = expand slider ──
+  const volumeGroup = document.getElementById("volumeGroup");
+  const volumeIconEl = document.getElementById("volumeIcon");
+
+  volumeIconEl.addEventListener("click", () => {
+    if (volume > 0) {
+      volumeBeforeMute = volume;
+      setVolumeValue(0);
+    } else {
+      setVolumeValue(volumeBeforeMute || 100);
+    }
+  });
+
+  volumeIconEl.addEventListener("mouseenter", () => openGroup(volumeGroup));
+  volumeGroup.addEventListener("mouseleave", () => closeGroup(volumeGroup));
+
+  // ── 3) Close mechanism: handle click ──
+  expandGroups.forEach(group => {
+    if (group.id === "volumeGroup") return;
+    const handle = group.querySelector(".group-expand-handle");
+    if (!handle) return;
+    handle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (isOpen(group)) closeGroup(group);
+    });
+  });
+
+})();
 </script>
 </body>
 </html>
