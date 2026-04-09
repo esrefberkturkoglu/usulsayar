@@ -188,6 +188,9 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
   font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
 }
 .disk-btn[aria-pressed="true"]{border-color:var(--dum);color:var(--dum)}
+.disk-icon{display:block;width:16px;height:16px;flex-shrink:0}
+@keyframes disk-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+[data-playing="false"] .disk-btn[aria-pressed="true"] .disk-icon{animation:disk-spin 3s linear infinite}
 
 /* ── Hand Guidance ── */
 .hand-guide{
@@ -267,12 +270,14 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
   width:min(100%,780px);height:100%;
 }
 .carousel-arrow{
-  width:24px;height:100%;border:none;background:transparent;
-  color:var(--text2);font-size:16px;cursor:pointer;flex-shrink:0;
+  width:56px;height:100%;border:none;background:transparent;
+  color:var(--text3);cursor:pointer;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  transition:color .2s;
+  transition:color .15s,transform .1s;
 }
 .carousel-arrow:hover{color:var(--text)}
+.carousel-arrow:active{transform:scale(.9)}
+.carousel-arrow svg{width:28px;height:28px;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none}
 .carousel-track{
   flex:1;overflow-x:auto;scroll-snap-type:x mandatory;
   display:flex;gap:6px;align-items:stretch;
@@ -284,22 +289,23 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 .carousel-card{
   flex:0 0 120px;scroll-snap-align:center;
   padding:6px 8px;border-radius:6px;text-align:center;
-  cursor:pointer;transition:all .2s;
+  cursor:pointer;
   border:1.5px solid transparent;background:var(--bg3);
   position:relative;overflow:hidden;
   display:flex;align-items:center;justify-content:center;
 }
 .carousel-card .c-units{
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-size:44px;font-weight:900;opacity:.14;
-  line-height:1;pointer-events:none;
-  color:var(--text);letter-spacing:-2px;
+  position:absolute;top:3px;right:5px;
+  min-width:18px;height:18px;padding:0 4px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;line-height:1;
+  background:var(--text);color:var(--bg);
+  opacity:.28;pointer-events:none;
 }
-.carousel-card .c-name{font-size:16px;font-weight:600;color:var(--text2);line-height:1.3;position:relative;white-space:pre-line}
-.carousel-card:hover .c-units{opacity:1;font-size:36px;letter-spacing:-1px}
-.carousel-card:hover .c-name{opacity:.12;transition:opacity .2s}
-.carousel-card.active{border-color:var(--dum);background:var(--bg2)}
+.carousel-card .c-name{font-size:15px;font-weight:600;color:var(--text2);line-height:1.3;white-space:pre-line}
+.carousel-card.active{border-color:var(--tek);background:var(--bg2)}
 .carousel-card.active .c-name{color:var(--text)}
+.carousel-card.active .c-units{background:var(--tek);color:#fff;opacity:1}
 
 /* ── Footer ── */
 .app-footer{
@@ -386,9 +392,9 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
 
 <nav class="carousel">
   <div class="carousel-inner">
-    <button class="carousel-arrow" id="carPrev" aria-label="Önceki usül">&#8249;</button>
+    <button class="carousel-arrow" id="carPrev" aria-label="Önceki usül"><svg viewBox="0 0 24 24"><polyline points="15 6 9 12 15 18"/></svg></button>
     <div class="carousel-track" id="carouselTrack"></div>
-    <button class="carousel-arrow" id="carNext" aria-label="Sonraki usül">&#8250;</button>
+    <button class="carousel-arrow" id="carNext" aria-label="Sonraki usül"><svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></button>
   </div>
 </nav>
 
@@ -397,7 +403,7 @@ body:not([data-compact="true"]) #tekMute{text-align:left}
   <div class="footer-center">
     <div class="mode-group">
       <button class="theme-btn" id="themeToggle" aria-label="Tema değiştir">☀</button>
-      <button class="disk-btn" id="diskToggle" aria-pressed="false" aria-label="Disk modu" title="Disk modu">&#9680;</button>
+      <button class="disk-btn" id="diskToggle" aria-pressed="false" aria-label="Disk modu" title="Disk modu"><svg viewBox="0 0 16 16" width="16" height="16" class="disk-icon"><circle cx="8" cy="8" r="7" fill="currentColor" stroke="none"/><path d="M8 1A7 7 0 0 1 8 15Z" fill="var(--bg)"/></svg></button>
     </div>
     <button class="mobile-toggle" id="footerToggle" aria-label="Kaydet panelini aç/kapat" aria-expanded="false">&#9650;</button>
   </div>
@@ -858,11 +864,14 @@ function shouldPlayEventKind(kind, localSoloMode = soloMode) {
 }
 
 function updateMuteState() {
+  const now = audioCtx.currentTime;
+  const fadeSec = 0.015;
+  gate.gain.setValueAtTime(gate.gain.value, now);
   if (dumMuted && tekMuted) {
     soloMode = "none";
-    gate.gain.setValueAtTime(0, audioCtx.currentTime);
+    gate.gain.linearRampToValueAtTime(0, now + fadeSec);
   } else {
-    gate.gain.setValueAtTime(1, audioCtx.currentTime);
+    gate.gain.linearRampToValueAtTime(1, now + fadeSec);
     if (dumMuted) soloMode = "tek";
     else if (tekMuted) soloMode = "dum";
     else soloMode = "none";
@@ -1013,12 +1022,27 @@ function stopTransport() {
   document.querySelector(".viz-container").classList.remove("ring-pulse");
 }
 
+let _restartTimer = null;
 function restartTransportIfPlaying() {
   if (!isPlaying) return;
-  gate.gain.setValueAtTime(0, audioCtx.currentTime);
-  stopTransport();
-  startTransport();
-  if (!(dumMuted && tekMuted)) gate.gain.setValueAtTime(1, audioCtx.currentTime);
+  const fadeSec = 0.015;
+  // Cancel any pending restart — prevent overlapping ramps
+  if (_restartTimer) { clearTimeout(_restartTimer); _restartTimer = null; }
+  // Immediately silence: cancel scheduled ramps, then ramp to 0
+  gate.gain.cancelScheduledValues(audioCtx.currentTime);
+  gate.gain.setValueAtTime(gate.gain.value, audioCtx.currentTime);
+  gate.gain.linearRampToValueAtTime(0, audioCtx.currentTime + fadeSec);
+  _restartTimer = setTimeout(() => {
+    _restartTimer = null;
+    stopTransport();
+    startTransport();
+    const t = audioCtx.currentTime;
+    gate.gain.cancelScheduledValues(t);
+    if (!(dumMuted && tekMuted)) {
+      gate.gain.setValueAtTime(0, t);
+      gate.gain.linearRampToValueAtTime(1, t + fadeSec);
+    }
+  }, 20);
 }
 
 // ── WAV Encoding ────────────────────────────────────────────────
@@ -1729,16 +1753,32 @@ function selectCarouselCard(idx) {
   restartTransportIfPlaying();
 }
 
-// Carousel: arrow buttons
-document.getElementById("carPrev").addEventListener("click", () => selectCarouselCard(selectedCardIndex - 1));
-document.getElementById("carNext").addEventListener("click", () => selectCarouselCard(selectedCardIndex + 1));
+// Carousel: arrow buttons with hold-to-repeat
+function addHoldRepeat(btn, action, intervalMs = 500, delayMs = 400) {
+  let timer = null, interval = null;
+  const stop = () => { clearTimeout(timer); clearInterval(interval); timer = interval = null; };
+  btn.addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    action();
+    btn.setPointerCapture(e.pointerId);
+    timer = setTimeout(() => { interval = setInterval(action, intervalMs); }, delayMs);
+  });
+  btn.addEventListener("pointerup", stop);
+  btn.addEventListener("pointercancel", stop);
+  btn.addEventListener("lostpointercapture", stop);
+}
+addHoldRepeat(document.getElementById("carPrev"), () => selectCarouselCard(selectedCardIndex - 1));
+addHoldRepeat(document.getElementById("carNext"), () => selectCarouselCard(selectedCardIndex + 1));
 
-// Carousel: mouse wheel
+// Carousel: mouse wheel (debounced)
+let _wheelTimer = null;
 carouselTrack.addEventListener("wheel", e => {
   e.preventDefault();
+  if (_wheelTimer) return;
   const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
   if (delta > 0) selectCarouselCard(selectedCardIndex + 1);
   else if (delta < 0) selectCarouselCard(selectedCardIndex - 1);
+  _wheelTimer = setTimeout(() => { _wheelTimer = null; }, 120);
 }, { passive: false });
 
 // Carousel: drag (hasDragged ayırır tıklamayı sürüklemeden)
