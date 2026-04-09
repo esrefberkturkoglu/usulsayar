@@ -173,7 +173,7 @@ body:not([data-compact="true"]) .app-footer{min-height:60px;background:transpare
   color:var(--text);transition:border-color .15s,background .15s,transform .1s;
   position:relative;z-index:3;
 }
-.group-icon:hover{border-color:var(--text2);background:color-mix(in srgb,var(--text) 8%,transparent)}
+.group-icon:hover{border-color:inherit;background:var(--bg3)}
 .group-icon:active{transform:scale(.92)}
 @keyframes bpm-pulse{0%{transform:scale(1)}15%{transform:scale(1.35)}100%{transform:scale(1)}}
 #bpmIcon.pulse,#volumeIcon.pulse{animation:bpm-pulse .25s ease-out}
@@ -230,7 +230,7 @@ body:not([data-compact="true"]) .app-footer{min-height:60px;background:transpare
 }
 .mute-label[data-voice="dum"]{color:var(--dum);border-color:var(--dum)}
 .mute-label[data-voice="tek"]{color:var(--tek);border-color:var(--tek)}
-.mute-label:hover{background:color-mix(in srgb,currentColor 12%,transparent)}
+.mute-label:hover{background:var(--bg3)}
 .mute-label:active{transform:scale(.92)}
 .mute-label[aria-pressed="true"]{opacity:.3;text-decoration:line-through}
 .mode-group{display:flex;align-items:center;gap:6px}
@@ -386,7 +386,7 @@ body:not([data-compact="true"]) #renderPanel>.group-expand-handle{left:auto;righ
   transition:border-color .15s,background .15s,transform .1s;padding:0;
   position:relative;z-index:3;
 }
-.btn-save:hover{border-color:var(--text2);background:color-mix(in srgb,var(--text) 8%,transparent)}
+.btn-save:hover{border-color:inherit;background:var(--bg3)}
 .btn-save:active{transform:scale(.92)}
 .btn-save svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
 .render-status{font-size:11px;color:var(--text2)}
