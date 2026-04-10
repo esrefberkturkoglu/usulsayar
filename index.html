@@ -263,7 +263,7 @@ body:not([data-compact="true"]) .app-footer{min-height:60px;background:transpare
 /* ── Visualization ── */
 .viz-area{
   grid-area:viz;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
-  position:relative;min-height:0;min-width:0;padding:8px;padding-bottom:53px;gap:53px;overflow:hidden;
+  position:relative;min-height:0;min-width:0;padding:8px;padding-bottom:16px;gap:16px;overflow:hidden;
 }
 .viz-container{position:relative;width:min(90%,50vh);aspect-ratio:1}
 .segment-ring,.sweep-canvas{position:absolute;top:0;left:0;width:100%;height:100%}
@@ -291,7 +291,7 @@ body:not([data-compact="true"]) .app-footer{min-height:60px;background:transpare
   justify-content:flex-end;overflow:hidden;z-index:5;flex-shrink:0;
   min-height:52px;
 }
-.beat-info:has(.fitted){justify-content:center}
+.beat-info:has(.fitted){justify-content:flex-end}
 .beat-labels{
   white-space:nowrap;line-height:1.3;font-weight:600;
   display:flex;gap:0;justify-content:center;
@@ -397,7 +397,23 @@ body:not([data-compact="true"]) #renderPanel>.group-expand-handle{left:auto;righ
 .footer-right a{color:var(--tek);text-decoration:none}
 .footer-right a:hover{text-decoration:underline}
 .footer-right a:active{color:var(--dum)}
+/* ── Notation display (desktop only, OSMD) ── */
+.notation-row{display:none}
+body:not([data-compact="true"]) .notation-row{
+  display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;
+  width:min(90%,60vh);
+}
+#notationDisplay{width:100%;text-align:center}
+#notationDisplay svg{max-width:100%;max-height:60px;height:auto}
+.notation-speeds{display:flex;gap:2px}
+.notation-speeds button{
+  border:1px solid var(--border);border-radius:4px;background:var(--bg3);
+  color:var(--text2);font-size:10px;font-weight:600;padding:2px 5px;
+  cursor:pointer;line-height:1;transition:border-color .15s,background .15s;
+}
+.notation-speeds button.active{border-color:var(--tek);background:var(--bg2);color:var(--text)}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.8.6/build/opensheetmusicdisplay.min.js" defer></script>
 </head>
 <body data-theme="light" data-playing="false">
 
@@ -438,6 +454,15 @@ body:not([data-compact="true"]) #renderPanel>.group-expand-handle{left:auto;righ
 </aside>
 
 <main class="viz-area">
+  <div class="notation-row" id="notationRow">
+    <div class="notation-speeds" id="notationSpeeds">
+      <button data-speed="2">/2</button>
+      <button data-speed="4" class="active">/4</button>
+      <button data-speed="8">/8</button>
+      <button data-speed="16">/16</button>
+    </div>
+    <div id="notationDisplay"></div>
+  </div>
   <div class="beat-info">
     <div class="beat-labels" id="beatLabels" aria-live="polite"></div>
   </div>
@@ -994,6 +1019,156 @@ const usulDefs = {
 function getUsulUnitCount(name) {
   return usulDefs[name].reduce((sum, ev) => sum + ev.units, 0);
 }
+
+// ── Notation (OSMD) ─────────────────────────────────────────────
+let notationSpeed = "4";
+let osmd = null;
+let notationReady = false;
+
+function durationToNoteInfo(xmlDur) {
+  const m = {1:{t:"32nd",d:false},2:{t:"16th",d:false},3:{t:"16th",d:true},
+    4:{t:"eighth",d:false},6:{t:"eighth",d:true},8:{t:"quarter",d:false},
+    12:{t:"quarter",d:true},16:{t:"half",d:false},24:{t:"half",d:true},
+    32:{t:"whole",d:false},48:{t:"whole",d:true},64:{t:"breve",d:false}};
+  return m[xmlDur] || {t:"quarter",d:false};
+}
+
+function stemDir(kind) {
+  if (kind === "dum" || kind === "weakRight") return "up";
+  if (kind === "weakLeft") return "down";
+  if (kind === "bothWeak") return "up";
+  return "up";
+}
+
+function noteXml(dur, info, stem, voice) {
+  let x = "<note><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched>";
+  x += `<duration>${dur}</duration><voice>${voice}</voice><type>${info.t}</type>`;
+  if (info.d) x += "<dot/>";
+  if (stem && info.t !== "whole" && info.t !== "breve") x += `<stem>${stem}</stem>`;
+  x += "</note>";
+  return x;
+}
+
+function generateMusicXML(usulName, speed) {
+  const events = usulDefs[usulName];
+  if (!events) return null;
+  const speedNum = parseInt(speed);
+  const totalUnits = events.reduce((s, e) => s + e.units, 0);
+  const divisions = 8;
+
+  // Detect tahek segments for chord rendering
+  const tahekIndices = new Set();
+  for (let i = 0; i < events.length - 1; i++) {
+    const cb = events[i].label.replace(/[\d.½]+$/, "");
+    const nb = events[i+1].label.replace(/[\d.½]+$/, "");
+    if (cb === "ta" && nb === "hek" && events[i+1].kind === "bothWeak") {
+      tahekIndices.add(i);     // ta index
+      tahekIndices.add(i + 1); // hek index (will get voice2 chord)
+    }
+  }
+
+  let notes = "";
+  const voice2 = []; // {offset, dur, info} for chord overlays
+  let cumDur = 0;
+
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i];
+    const xmlDur = ev.units * 32 / speedNum;
+    const info = durationToNoteInfo(xmlDur);
+    const stem = stemDir(ev.kind);
+    notes += noteXml(xmlDur, info, stem, 1);
+
+    // If this is the "hek" of a tahek pair, add voice2 note at same position
+    if (tahekIndices.has(i) && ev.kind === "bothWeak") {
+      voice2.push({ offset: cumDur, dur: xmlDur, info });
+    }
+    cumDur += xmlDur;
+  }
+
+  // Voice 2: backup to start, forward to each chord position
+  if (voice2.length > 0) {
+    notes += `<backup><duration>${cumDur}</duration></backup>`;
+    let v2pos = 0;
+    for (const v of voice2) {
+      if (v.offset > v2pos) {
+        notes += `<forward><duration>${v.offset - v2pos}</duration></forward>`;
+        v2pos = v.offset;
+      }
+      notes += noteXml(v.dur, v.info, "down", 2);
+      v2pos += v.dur;
+    }
+  }
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="4.0">
+<part-list><score-part id="P1"><part-name>U</part-name></score-part></part-list>
+<part id="P1"><measure number="1">
+<attributes><divisions>${divisions}</divisions>
+<time><beats>${totalUnits}</beats><beat-type>${speedNum}</beat-type></time>
+<clef><sign>percussion</sign></clef>
+<staff-details><staff-lines>1</staff-lines></staff-details>
+</attributes>${notes}</measure></part></score-partwise>`;
+}
+
+async function updateNotation() {
+  if (!osmd || !notationReady) return;
+  const xml = generateMusicXML(currentUsulName, notationSpeed);
+  if (!xml) return;
+  try {
+    await osmd.load(xml);
+    osmd.zoom = 0.7;
+    osmd.render();
+    // Crop SVG to content with consistent viewBox height
+    const svg = document.querySelector("#notationDisplay svg");
+    if (svg) {
+      const bb = svg.getBBox();
+      const p = 4;
+      const vbW = bb.width + p * 2;
+      const minH = 78; // stem-note reference height for consistent scale
+      const contentH = bb.height + p * 2;
+      const vbH = Math.max(contentH, minH);
+      const yCenter = bb.y + bb.height / 2;
+      svg.setAttribute("viewBox", `${bb.x - p} ${yCenter - vbH / 2} ${vbW} ${vbH}`);
+      svg.removeAttribute("width");
+      svg.removeAttribute("height");
+    }
+  } catch (e) { /* OSMD render error, ignore silently */ }
+}
+
+function initOSMD() {
+  if (typeof opensheetmusicdisplay === "undefined") return;
+  const container = document.getElementById("notationDisplay");
+  if (!container) return;
+  osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(container, {
+    autoResize: false,
+    drawTitle: false,
+    drawSubtitle: false,
+    drawComposer: false,
+    drawCredits: false,
+    drawPartNames: false,
+    drawPartAbbreviations: false,
+    drawMeasureNumbers: false,
+    drawTimeSignatures: true,
+  });
+  notationReady = true;
+  // Defer first render so container is fully laid out
+  requestAnimationFrame(() => requestAnimationFrame(() => updateNotation()));
+}
+
+// Speed selector
+document.getElementById("notationSpeeds")?.addEventListener("click", e => {
+  const btn = e.target.closest("button[data-speed]");
+  if (!btn) return;
+  notationSpeed = btn.dataset.speed;
+  document.querySelectorAll("#notationSpeeds button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  updateNotation();
+});
+
+// Init OSMD when library loads (deferred script)
+if (typeof opensheetmusicdisplay !== "undefined") initOSMD();
+else window.addEventListener("load", initOSMD);
 
 // ── Pattern State ───────────────────────────────────────────────
 let currentUsulName = "Nim Sofyan";
@@ -1840,6 +2015,7 @@ function selectCarouselCard(idx) {
   pattern = usulDefs[currentUsulName];
   currentStep = 0;
   rebuildVisualization();
+  updateNotation();
   restartTransportIfPlaying();
 }
 
