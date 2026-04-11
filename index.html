@@ -39,16 +39,22 @@ body{
 .controls-panel{display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-end}
 .controls-panel:last-of-type{justify-content:flex-start}
 /* ── Compact (mobile) mode — activated by JS when header overflows ── */
-[data-compact="true"]{grid-template-columns:0 1fr 0}
+[data-compact="true"]{grid-template-columns:0 1fr 0;grid-template-areas:"lh viz rh" "car car car" "ctrl ctrl ctrl" "foot foot foot"}
 [data-compact="true"] .hand-guide{position:absolute!important;width:40px!important;opacity:.15!important;z-index:0;pointer-events:none}
 [data-compact="true"] .hand-guide--left{left:0;top:0;bottom:0}
 [data-compact="true"] .hand-guide--right{right:0;top:0;bottom:0}
 [data-compact="true"] .mobile-toggle{
   display:flex;align-items:center;justify-content:center;
-  width:32px;height:32px;border:1px solid var(--border);border-radius:50%;
-  background:var(--bg3);color:var(--text);font-size:16px;cursor:pointer;flex-shrink:0;
+  width:100%;height:28px;border:none;border-radius:0;
+  background:transparent;color:var(--text3);cursor:pointer;flex-shrink:0;
+  padding:0;touch-action:none;
 }
-[data-compact="true"] .mobile-toggle[aria-expanded="true"]{border-color:var(--dum);color:var(--dum)}
+[data-compact="true"] .mobile-toggle::after{
+  content:"";display:block;width:40px;height:4px;border-radius:2px;
+  background:var(--border);transition:background .2s,width .2s;
+}
+[data-compact="true"] .mobile-toggle:active::after{background:var(--text3);width:48px}
+[data-compact="true"] .mobile-toggle[aria-expanded="true"]::after{background:var(--dum);width:48px}
 [data-compact="true"] .controls{justify-content:center;gap:8px;flex-wrap:wrap;position:relative}
 [data-compact="true"] #headerToggle{display:none!important}
 [data-compact="true"] .controls-panel{
@@ -69,18 +75,17 @@ body{
 [data-compact="true"] #volumeGroup{order:4}
 [data-compact="true"] .app-footer{flex-wrap:wrap;justify-content:flex-start}
 [data-compact="true"] .app-footer:has(#renderPanel.panel-visible){flex-wrap:wrap-reverse}
-[data-compact="true"] .footer-left{position:static;transform:none;order:1;flex:1;min-width:0;font-size:12px;align-self:flex-end}
-[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) .footer-left{align-self:flex-start}
+[data-compact="true"] .footer-left{position:absolute;left:14px;bottom:6px;font-size:12px;white-space:nowrap}
 [data-compact="true"] .footer-center{display:contents}
-[data-compact="true"] #footerToggle{order:2}
+[data-compact="true"] #footerToggle{order:4;flex-basis:100%;align-self:center}
+[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) #footerToggle{order:4}
 [data-compact="true"] .mode-group{display:none}
-[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) .mode-group{display:flex;position:absolute;right:14px;top:8px;gap:8px;z-index:2}
-[data-compact="true"] .footer-right{position:static;transform:none;order:3;flex:1;min-width:0;font-size:12px;text-align:right;align-self:flex-end}
-[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) .footer-right{align-self:flex-start}
+[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) .mode-group{display:flex;order:5;gap:10px}
+[data-compact="true"] .footer-right{position:absolute;right:14px;bottom:6px;font-size:12px;text-align:right;white-space:nowrap}
 [data-compact="true"] #renderStatus{display:none}
-[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) #renderStatus:not(:empty){display:block;position:absolute;left:154px;right:94px;top:10px;font-size:9px;text-align:left;word-break:break-word;line-height:1.2;overflow:hidden;max-height:2.4em}
+[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) #renderStatus:not(:empty){display:block;order:6;flex-basis:100%;font-size:9px;text-align:center;line-height:1.4;overflow:hidden;max-height:1.4em}
 [data-compact="true"] #renderPanel{order:5;flex-basis:100%;display:none}
-[data-compact="true"] #renderPanel.panel-visible{display:flex;justify-content:flex-start;flex-wrap:nowrap;padding-right:80px;gap:6px}
+[data-compact="true"] #renderPanel.panel-visible{display:flex;flex:1;flex-basis:auto;justify-content:flex-end;flex-wrap:nowrap;padding-right:0;gap:8px}
 
 /* ── Desktop bar overrides ── */
 body:not([data-compact="true"]) .controls{min-height:60px;background:transparent;border-top:none;gap:59px}
@@ -92,6 +97,7 @@ body:not([data-compact="true"]) #renderStatus{position:absolute;left:100%;margin
 /* ── Mobile bar overrides ── */
 [data-compact="true"] .controls{background:transparent;border-top:none}
 [data-compact="true"] .carousel{background:transparent;border-top:none}
+[data-compact="true"] .carousel-arrow{display:none}
 [data-compact="true"] .app-footer{background:transparent;border-top:none}
 [data-compact="true"] .viz-area{gap:10px;padding-bottom:2px;padding-top:4px}
 /* ── Mobile: groups always open, no collapse, no arrows, symmetric padding ── */
@@ -222,6 +228,7 @@ body:not([data-compact="true"]) #renderStatus{position:absolute;left:100%;margin
 }
 .bpm-step-btn:active{background:var(--ctrl-track)}
 .repeat-step-btn{width:22px;height:22px;font-size:13px}
+[data-compact="true"] .repeat-step-btn{width:32px;height:32px;font-size:15px}
 .mute-label{
   cursor:pointer;user-select:none;
   width:34px;height:34px;border-radius:50%;
@@ -244,7 +251,7 @@ body:not([data-compact="true"]) #renderStatus{position:absolute;left:100%;margin
 }
 .disk-btn[aria-pressed="true"]{border-color:var(--dum);color:var(--dum)}
 .disk-icon{display:block;width:16px;height:16px;flex-shrink:0}
-@keyframes disk-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes disk-spin{from{transform:rotate(0deg)}to{transform:rotate(-360deg)}}
 [data-playing="false"] .disk-btn[aria-pressed="true"] .disk-icon{animation:disk-spin 3s linear infinite}
 
 /* ── Hand Guidance ── */
@@ -313,54 +320,56 @@ body:not([data-compact="true"]) #renderStatus{position:absolute;left:100%;margin
 .beat-labels span.active{background:var(--active-bg);color:var(--bg)!important}
 .beat-labels .sep{color:var(--text3);padding:0;font-weight:400}
 .beat-labels .sep-dash{padding:0 1px}
+.beat-info:has(.aligned),body:not([data-compact="true"]) .beat-info:has(.marquee){margin-top:-12px;min-height:auto;justify-content:flex-start;padding-top:0}
+body:not([data-compact="true"]) .beat-labels.marquee{height:24px}
+.beat-labels.aligned{position:relative;white-space:normal;height:24px;width:100%}
+.beat-labels.aligned > .sep{display:none}
+.beat-labels.aligned > span[style*="position"]{white-space:nowrap}
+.beat-labels.aligned .sep-dash{position:absolute;transform:translateX(-50%)}
 
 /* ── Carousel ── */
 .carousel{
   grid-area:car;display:flex;align-items:center;justify-content:center;
   background:var(--bg2);border-top:1px solid var(--border);
-  padding:2px 0;gap:0;height:60px;
+  padding:2px 0;gap:0;height:44px;
 }
 .carousel-inner{
-  display:flex;align-items:center;
+  display:flex;align-items:center;justify-content:center;
   width:min(100%,780px);height:100%;
 }
 .carousel-arrow{
-  width:56px;height:100%;border:none;background:transparent;
+  width:40px;height:100%;border:none;background:transparent;
   color:var(--text3);cursor:pointer;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
   transition:color .15s,transform .1s;
 }
 .carousel-arrow:hover{color:var(--text)}
 .carousel-arrow:active{transform:scale(.9)}
-.carousel-arrow svg{width:28px;height:28px;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.carousel-arrow svg{width:22px;height:22px;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;fill:none}
 .carousel-track{
-  flex:1;overflow-x:auto;scroll-snap-type:x mandatory;
-  display:flex;gap:6px;align-items:stretch;
-  scrollbar-width:none;-ms-overflow-style:none;
-  scroll-behavior:auto;
-  max-width:732px;height:100%;
+  position:relative;
+  display:flex;align-items:center;
+  width:100%;height:100%;
+  overflow:hidden;
+  cursor:grab;touch-action:pan-y;
+  -webkit-mask-image:linear-gradient(to right,transparent 2%,black 20%,black 80%,transparent 98%);
+  mask-image:linear-gradient(to right,transparent 2%,black 20%,black 80%,transparent 98%);
 }
-.carousel-track::-webkit-scrollbar{display:none}
-.carousel-card{
-  flex:0 0 120px;scroll-snap-align:center;
-  padding:6px 8px;border-radius:6px;text-align:center;
-  cursor:pointer;
-  border:1.5px solid transparent;background:var(--bg3);
-  position:relative;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;
+.carousel-track.dragging{cursor:grabbing}
+.car-reel{
+  display:flex;align-items:center;
+  gap:30px;
+  position:absolute;left:50%;
+  will-change:transform;
 }
-.carousel-card .c-units{
-  position:absolute;top:3px;right:5px;
-  min-width:18px;height:18px;padding:0 4px;border-radius:9px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:800;line-height:1;
-  background:var(--text);color:var(--bg);
-  opacity:.28;pointer-events:none;
+.car-item{
+  white-space:nowrap;cursor:pointer;flex-shrink:0;
+  will-change:transform,opacity;
+  line-height:1;font-size:14px;font-weight:600;color:var(--text2);
 }
-.carousel-card .c-name{font-size:15px;font-weight:600;color:var(--text2);line-height:1.3;white-space:pre-line}
-.carousel-card.active{border-color:var(--tek);background:var(--bg2)}
-.carousel-card.active .c-name{color:var(--text)}
-.carousel-card.active .c-units{background:var(--tek);color:#fff;opacity:1}
+.car-item .car-units{
+  font-size:9px;font-weight:700;vertical-align:super;margin-left:1px;opacity:.5;
+}
 
 /* ── Footer ── */
 .app-footer{
@@ -498,7 +507,7 @@ body:not([data-compact="true"]) #renderPanel>.group-expand-handle{left:auto;righ
       <button class="disk-btn" id="diskToggle" aria-pressed="false" aria-label="Disk modu" title="Disk modu"><svg viewBox="0 0 16 16" width="16" height="16" class="disk-icon"><circle cx="8" cy="8" r="7" fill="currentColor" stroke="none"/><path d="M8 1A7 7 0 0 1 8 15Z" fill="var(--bg)"/></svg></button>
     </div>
     <span class="render-status" id="renderStatus"></span>
-    <button class="mobile-toggle" id="footerToggle" aria-label="Kaydet panelini aç/kapat" aria-expanded="false">&#9650;</button>
+    <button class="mobile-toggle" id="footerToggle" aria-label="Menüyü aç/kapat" aria-expanded="false"></button>
   </div>
   <div class="render-row" id="renderPanel" data-expand="rtl">
     <button class="group-expand-handle" aria-label="Kapat"><svg viewBox="0 0 10 48"><polyline points="1 2 9 24 1 46"/></svg></button>
@@ -628,6 +637,18 @@ let soloMode = "none";
 
 let isPlaying = false;
 let diskMode = false;
+
+function isMaximized() {
+  return window.outerWidth >= screen.availWidth - 16
+      && window.outerHeight >= screen.availHeight - 16;
+}
+function shouldAlignLabels() {
+  if (document.body.dataset.compact === "true") return false;
+  if (!isMaximized()) return false;
+  if (!notationNotePositions.length) return false;
+  if (isPlaying && diskMode) return false;
+  return true;
+}
 let currentStep = 0;
 let nextNoteTime = 0;
 let timerId = null;
@@ -1243,6 +1264,7 @@ async function updateNotation() {
       lastNotationHlIdx = -1;
     }
   } catch (e) { /* OSMD render error, ignore silently */ }
+  fitBeatLabels();
 }
 
 function detectNotePositions(svg, vbX, vbY, vbW, vbH) {
@@ -2061,16 +2083,97 @@ function buildBeatLabels() {
 
 }
 
+function clearAlignedLabels() {
+  const container = document.getElementById("beatLabels");
+  container.classList.remove("aligned");
+  container.style.height = "";
+  // Clear inline position styles from spans and dashGroups
+  beatLabelSpans.forEach(sp => { sp.style.position = ""; sp.style.left = ""; sp.style.transform = ""; });
+  container.querySelectorAll(".sep-dash").forEach(s => { s.style.left = ""; s.style.transform = ""; s.style.position = ""; s.style.color = ""; s.style.fontWeight = ""; s.style.opacity = ""; });
+  // Restore dashGroup display (they get display:contents in aligned mode)
+  container.querySelectorAll("span[style*='contents']").forEach(g => { g.style.display = ""; });
+}
+
+function alignBeatLabels() {
+  const container = document.getElementById("beatLabels");
+  const svg = document.querySelector("#notationDisplay svg");
+  if (!svg || !notationNotePositions.length || !beatLabelSpans.length) return false;
+
+  const vbAttr = svg.getAttribute("viewBox");
+  if (!vbAttr) return false;
+  const [vbX, , vbW] = vbAttr.split(" ").map(Number);
+  const svgRect = svg.getBoundingClientRect();
+  const containerRect = container.parentElement.getBoundingClientRect();
+  if (svgRect.width === 0) return false;
+
+  // viewBox x → pixel x relative to beat-info parent
+  function notePixelLeft(noteIdx) {
+    const pos = notationNotePositions[noteIdx];
+    if (!pos) return null;
+    return svgRect.left + (pos.x - vbX) / vbW * svgRect.width - containerRect.left;
+  }
+
+  container.classList.add("aligned");
+
+  // Make dashGroups transparent to positioning
+  for (const child of container.children) {
+    if (!child.classList.contains("sep") && !child.dataset.eventIdx && child.children.length > 0) {
+      child.style.display = "contents";
+    }
+  }
+
+  // Position each beat label span left-aligned to its highlight rect
+  for (let i = 0; i < beatLabelSpans.length; i++) {
+    const sp = beatLabelSpans[i];
+    const evIdx = Number(sp.dataset.eventIdx);
+    const noteIdx = notationEventToNote[evIdx];
+    const px = notePixelLeft(noteIdx);
+    if (px === null) continue;
+    sp.style.position = "absolute";
+    sp.style.left = px + "px";
+    sp.style.transform = "";
+  }
+
+  // Position dash separators centered between their adjacent spans, with matching color
+  container.querySelectorAll(".sep-dash").forEach(sep => {
+    const prev = sep.previousElementSibling;
+    const next = sep.nextElementSibling;
+    if (!prev || !next) return;
+    const prevIdx = notationEventToNote[Number(prev.dataset.eventIdx)];
+    const nextIdx = notationEventToNote[Number(next.dataset.eventIdx)];
+    const px1 = notePixelLeft(prevIdx);
+    const px2 = notePixelLeft(nextIdx);
+    if (px1 === null || px2 === null) return;
+    // Center between right edge of prev span and left edge of next span
+    const prevRight = px1 + prev.offsetWidth;
+    const mid = (prevRight + px2) / 2;
+    sep.style.position = "absolute";
+    sep.style.left = mid + "px";
+    sep.style.transform = "translateX(-50%)";
+    sep.style.color = prev.style.color || "";
+    sep.style.fontWeight = "700";
+    sep.style.opacity = "0.85";
+  });
+
+  return true;
+}
+
 function fitBeatLabels() {
   const container = document.getElementById("beatLabels");
   const parent = container.parentElement;
   const maxWidth = parent.clientWidth;
 
   // Reset all states
+  clearAlignedLabels();
   container.classList.remove("marquee", "fitted");
   container.style.transform = "";
   container.style.transition = "";
   container.style.fontSize = "";
+
+  // Aligned mode: spans positioned under notation notes
+  if (shouldAlignLabels()) {
+    if (alignBeatLabels()) return;
+  }
 
   // Disk mode + playing: always marquee
   if (diskMode && isPlaying) {
@@ -2211,52 +2314,91 @@ onScheduledEvent = function(stepIndex, audioTime, event, rightNext, leftNext) {
 
 // ── Carousel ────────────────────────────────────────────────────
 const carouselTrack = document.getElementById("carouselTrack");
-let carouselCards = [];
 let selectedCardIndex = 0;
 const usulNames = Object.keys(usulDefs);
 
+// ── Carousel: slot-machine reel ──
+let carReel = null;
+let itemCenters = [];   // center-X of each item relative to reel origin
+let reelX = 0;          // current translateX of the reel
+let snapRaf = null;
+
 function buildCarousel() {
   carouselTrack.innerHTML = "";
-  // Padding for centering first/last cards
-  const padL = document.createElement("div");
-  padL.style.cssText = "flex:0 0 calc(50% - 63px)";
-  carouselTrack.appendChild(padL);
-
+  carReel = document.createElement("div");
+  carReel.className = "car-reel";
   usulNames.forEach((name, i) => {
-    const card = document.createElement("div");
-    card.className = "carousel-card" + (name === currentUsulName ? " active" : "");
-    card.dataset.usul = name;
-    card.dataset.idx = i;
-    const displayName = name.replace(/^(Şarkı|Bektaşi|Ayin)\s(?=Devr-i)/, "$1\n").replace(/^(Bektaşi)\s(Raksanı)$/, "$1\n$2");
-    const nameSpan = `<span class="c-name">${displayName}</span>`;
-    card.innerHTML = `<span class="c-units">${getUsulUnitCount(name)}</span>${nameSpan}`;
-    card.addEventListener("click", () => selectCarouselCard(i));
-    carouselTrack.appendChild(card);
+    const sp = document.createElement("span");
+    sp.className = "car-item";
+    sp.dataset.idx = i;
+    sp.innerHTML = `${name}<sup class="car-units">${getUsulUnitCount(name)}</sup>`;
+    sp.addEventListener("click", () => {
+      if (!carouselTrack.classList.contains("dragging")) {
+        selectCarouselCard(i);
+        snapToIndex(i, true);
+      }
+    });
+    carReel.appendChild(sp);
   });
-
-  const padR = document.createElement("div");
-  padR.style.cssText = "flex:0 0 calc(50% - 63px)";
-  carouselTrack.appendChild(padR);
-
-  carouselCards = carouselTrack.querySelectorAll(".carousel-card");
+  carouselTrack.appendChild(carReel);
   selectedCardIndex = usulNames.indexOf(currentUsulName);
-  scrollToCard(selectedCardIndex, "auto");
+  requestAnimationFrame(() => {
+    measureItems();
+    reelX = -itemCenters[selectedCardIndex];
+    applyReelX();
+    updateItemDepth();
+  });
 }
 
-function scrollToCard(idx, behavior = "smooth") {
-  idx = clamp(idx, 0, usulNames.length - 1);
-  const card = carouselCards[idx];
-  if (card) card.scrollIntoView({ behavior, inline: "center", block: "nearest" });
+function measureItems() {
+  // Temporarily remove transforms so measurements are clean
+  const items = carReel.children;
+  for (let i = 0; i < items.length; i++) {
+    items[i].style.transform = "";
+    items[i].style.opacity = "";
+  }
+  itemCenters = [];
+  const reelRect = carReel.getBoundingClientRect();
+  for (let i = 0; i < items.length; i++) {
+    const r = items[i].getBoundingClientRect();
+    itemCenters.push(r.left + r.width / 2 - reelRect.left);
+  }
+}
+
+function applyReelX() {
+  carReel.style.transform = `translateX(${reelX}px)`;
+}
+
+function updateItemDepth() {
+  const trackWidth = carouselTrack.getBoundingClientRect().width;
+  const fadeRange = trackWidth * 0.44;
+  const items = carReel.children;
+  for (let i = 0; i < items.length; i++) {
+    const dist = Math.abs(itemCenters[i] + reelX);  // distance from track center (reel has left:50%)
+    const t = Math.min(dist / fadeRange, 1);  // 0 = center, 1 = edge
+    const scale = 1.25 - t * 0.5;            // 1.25 → 0.75
+    const opacity = 1 - t * 0.82;            // 1 → 0.18
+    items[i].style.transform = `scale(${scale})`;
+    items[i].style.opacity = Math.max(0, opacity);
+    items[i].style.color = t < 0.12 ? 'var(--text)' : 'var(--text2)';
+    items[i].style.fontWeight = t < 0.12 ? '700' : '600';
+  }
+}
+
+function nearestItemIndex() {
+  const target = -reelX;
+  let best = 0, bestD = Infinity;
+  for (let i = 0; i < itemCenters.length; i++) {
+    const d = Math.abs(itemCenters[i] - target);
+    if (d < bestD) { bestD = d; best = i; }
+  }
+  return best;
 }
 
 function selectCarouselCard(idx) {
   idx = clamp(idx, 0, usulNames.length - 1);
   if (idx === selectedCardIndex && usulNames[idx] === currentUsulName) return;
   selectedCardIndex = idx;
-  carouselCards.forEach(c => c.classList.remove("active"));
-  carouselCards[idx].classList.add("active");
-  scrollToCard(idx);
-
   currentUsulName = usulNames[idx];
   pattern = usulDefs[currentUsulName];
   currentStep = 0;
@@ -2265,70 +2407,178 @@ function selectCarouselCard(idx) {
   restartTransportIfPlaying();
 }
 
-// Carousel: arrow buttons with hold-to-repeat
+function snapToIndex(idx, animate) {
+  idx = clamp(idx, 0, usulNames.length - 1);
+  const targetX = -itemCenters[idx];
+  if (!animate) {
+    reelX = targetX;
+    applyReelX();
+    updateItemDepth();
+    if (idx !== selectedCardIndex) selectCarouselCard(idx);
+    return;
+  }
+  cancelAnimationFrame(snapRaf);
+  let v = 0;
+  (function tick() {
+    const force = (targetX - reelX) * 0.13;
+    v = (v + force) * 0.72;
+    reelX += v;
+    applyReelX();
+    updateItemDepth();
+    if (Math.abs(reelX - targetX) < 0.4 && Math.abs(v) < 0.1) {
+      reelX = targetX;
+      applyReelX();
+      updateItemDepth();
+      if (idx !== selectedCardIndex) selectCarouselCard(idx);
+      snapRaf = null;
+      return;
+    }
+    snapRaf = requestAnimationFrame(tick);
+  })();
+}
+
+// Drag + momentum
+(function() {
+  let startX = 0, startReelX = 0, pid = -1, dragging = false;
+  let lastX = 0, lastT = 0, velocity = 0;
+  let momentumRaf = null;
+  const FRICTION = 0.955;
+  const minX = () => -itemCenters[itemCenters.length - 1];
+  const maxX = () => -itemCenters[0];
+
+  function rubberBand(x) {
+    const lo = minX(), hi = maxX();
+    if (x > hi) return hi + (x - hi) * 0.25;
+    if (x < lo) return lo + (x - lo) * 0.25;
+    return x;
+  }
+
+  function stopAll() {
+    cancelAnimationFrame(momentumRaf);
+    cancelAnimationFrame(snapRaf);
+    momentumRaf = snapRaf = null;
+  }
+
+  carouselTrack.addEventListener("pointerdown", e => {
+    stopAll();
+    startX = e.clientX; startReelX = reelX;
+    lastX = e.clientX; lastT = e.timeStamp;
+    velocity = 0; pid = e.pointerId; dragging = false;
+  });
+
+  carouselTrack.addEventListener("pointermove", e => {
+    if (e.pointerId !== pid) return;
+    const dx = e.clientX - startX;
+    if (!dragging && Math.abs(dx) > 8) {
+      dragging = true;
+      carouselTrack.setPointerCapture(e.pointerId);
+      carouselTrack.classList.add("dragging");
+    }
+    if (dragging) {
+      e.preventDefault();
+      const dt = Math.max(e.timeStamp - lastT, 1);
+      velocity = (e.clientX - lastX) / dt;
+      lastX = e.clientX; lastT = e.timeStamp;
+      reelX = rubberBand(startReelX + dx);
+      applyReelX();
+      updateItemDepth();
+    }
+  });
+
+  carouselTrack.addEventListener("pointerup", e => {
+    if (e.pointerId !== pid) return;
+    carouselTrack.releasePointerCapture(e.pointerId);
+    carouselTrack.classList.remove("dragging");
+    pid = -1;
+    if (!dragging) return;
+    dragging = false;
+    // Clamp velocity
+    const v = Math.max(-4, Math.min(4, velocity)) * 16; // px/frame
+    if (Math.abs(v) > 2) {
+      startMomentum(v);
+    } else {
+      snapToIndex(nearestItemIndex(), true);
+    }
+  });
+
+  carouselTrack.addEventListener("pointercancel", () => {
+    carouselTrack.classList.remove("dragging");
+    pid = -1; dragging = false;
+    snapToIndex(nearestItemIndex(), true);
+  });
+
+  function startMomentum(v) {
+    let vel = v;
+    const lo = minX(), hi = maxX();
+    (function tick() {
+      vel *= FRICTION;
+      reelX += vel;
+      // If past boundaries, kill momentum and snap
+      if (reelX < lo || reelX > hi) {
+        reelX = clamp(reelX, lo, hi);
+        applyReelX(); updateItemDepth();
+        snapToIndex(nearestItemIndex(), true);
+        return;
+      }
+      applyReelX(); updateItemDepth();
+      if (Math.abs(vel) < 0.3) {
+        snapToIndex(nearestItemIndex(), true);
+        return;
+      }
+      momentumRaf = requestAnimationFrame(tick);
+    })();
+  }
+})();
+
+// Mouse wheel — step by 1
+carouselTrack.addEventListener("wheel", e => {
+  e.preventDefault();
+  const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  if (delta > 0 && selectedCardIndex < usulNames.length - 1) {
+    const idx = selectedCardIndex + 1;
+    selectCarouselCard(idx);
+    snapToIndex(idx, true);
+  } else if (delta < 0 && selectedCardIndex > 0) {
+    const idx = selectedCardIndex - 1;
+    selectCarouselCard(idx);
+    snapToIndex(idx, true);
+  }
+}, { passive: false });
+
+// Arrow buttons with hold-to-repeat
 function addHoldRepeat(btn, action) {
-  let timer = null, interval = null;
-  const stop = () => { clearTimeout(timer); clearInterval(interval); timer = interval = null; };
+  let timer = null, rid = null, running = false;
+  const DELAY = 250, RAMP = 660, IV0 = 400, IV1 = 25;
+  const stop = () => { running = false; clearTimeout(timer); clearTimeout(rid); timer = rid = null; };
   btn.addEventListener("pointerdown", e => {
     if (e.button !== 0) return;
-    action();
+    action(); running = true;
     btn.setPointerCapture(e.pointerId);
-    timer = setTimeout(() => { interval = setInterval(action, 100); }, 250);
+    const t0 = performance.now() + DELAY;
+    timer = setTimeout(function step() {
+      if (!running) return;
+      action();
+      const t = Math.min((performance.now() - t0) / RAMP, 1);
+      rid = setTimeout(step, IV0 + (IV1 - IV0) * t * t);
+    }, DELAY);
   });
   btn.addEventListener("pointerup", stop);
   btn.addEventListener("pointercancel", stop);
   btn.addEventListener("lostpointercapture", stop);
 }
-addHoldRepeat(document.getElementById("carPrev"), () => selectCarouselCard(selectedCardIndex - 1));
-addHoldRepeat(document.getElementById("carNext"), () => selectCarouselCard(selectedCardIndex + 1));
-
-// Carousel: mouse wheel
-carouselTrack.addEventListener("wheel", e => {
-  e.preventDefault();
-  const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-  if (delta > 0) selectCarouselCard(selectedCardIndex + 1);
-  else if (delta < 0) selectCarouselCard(selectedCardIndex - 1);
-}, { passive: false });
-
-// Carousel: drag (hasDragged ayırır tıklamayı sürüklemeden)
-let dragStartX = 0, dragScrollLeft = 0, isDragging = false, hasDragged = false;
-carouselTrack.addEventListener("pointerdown", e => {
-  isDragging = true;
-  hasDragged = false;
-  dragStartX = e.clientX;
-  dragScrollLeft = carouselTrack.scrollLeft;
-  carouselTrack.style.scrollBehavior = "auto";
-  carouselTrack.style.cursor = "grabbing";
-  carouselTrack.setPointerCapture(e.pointerId);
-});
-carouselTrack.addEventListener("pointermove", e => {
-  if (!isDragging) return;
-  const dx = e.clientX - dragStartX;
-  if (Math.abs(dx) > 4) hasDragged = true;
-  carouselTrack.scrollLeft = dragScrollLeft - dx;
-});
-carouselTrack.addEventListener("pointerup", e => {
-  if (!isDragging) return;
-  isDragging = false;
-  carouselTrack.style.scrollBehavior = "";
-  carouselTrack.style.cursor = "";
-  carouselTrack.releasePointerCapture(e.pointerId);
-  if (!hasDragged) {
-    // Tıklama: pointer'ın altındaki kartı bul
-    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest(".carousel-card");
-    if (el) { const idx = parseInt(el.dataset.idx); if (!isNaN(idx)) selectCarouselCard(idx); }
-    return;
+addHoldRepeat(document.getElementById("carPrev"), () => {
+  if (selectedCardIndex > 0) {
+    const idx = selectedCardIndex - 1;
+    selectCarouselCard(idx);
+    snapToIndex(idx, true);
   }
-  // Sürükleme bitti: merkeze en yakın kartı yakala
-  const trackRect = carouselTrack.getBoundingClientRect();
-  const centerX = trackRect.left + trackRect.width / 2;
-  let closestIdx = 0, minDist = Infinity;
-  carouselCards.forEach((card, i) => {
-    const cardRect = card.getBoundingClientRect();
-    const dist = Math.abs(cardRect.left + cardRect.width / 2 - centerX);
-    if (dist < minDist) { minDist = dist; closestIdx = i; }
-  });
-  selectCarouselCard(closestIdx);
+});
+addHoldRepeat(document.getElementById("carNext"), () => {
+  if (selectedCardIndex < usulNames.length - 1) {
+    const idx = selectedCardIndex + 1;
+    selectCarouselCard(idx);
+    snapToIndex(idx, true);
+  }
 });
 
 // ── Disk Mode Toggle ────────────────────────────────────────────
@@ -2374,9 +2624,19 @@ document.getElementById("toggle").addEventListener("click", async () => {
 
 // Hold-to-repeat for +/- buttons
 function holdButton(btn, fn) {
-  let tid, iid;
-  function start(e) { e.preventDefault(); fn(); tid = setTimeout(() => { iid = setInterval(fn, 80); }, 400); }
-  function stop() { clearTimeout(tid); clearInterval(iid); }
+  let tid, rid, running = false;
+  const DELAY = 400, RAMP = 660, IV0 = 320, IV1 = 20;
+  function start(e) {
+    e.preventDefault(); fn(); running = true;
+    const t0 = performance.now() + DELAY;
+    tid = setTimeout(function step() {
+      if (!running) return;
+      fn();
+      const t = Math.min((performance.now() - t0) / RAMP, 1);
+      rid = setTimeout(step, IV0 + (IV1 - IV0) * t * t);
+    }, DELAY);
+  }
+  function stop() { running = false; clearTimeout(tid); clearTimeout(rid); }
   btn.addEventListener("pointerdown", start);
   btn.addEventListener("pointerup", stop);
   btn.addEventListener("pointerleave", stop);
@@ -2430,6 +2690,12 @@ document.getElementById("repeatCount").addEventListener("wheel", e => {
 window.addEventListener("resize", () => {
   resizeSweepCanvas();
   fitBeatLabels();
+  if (carReel && itemCenters.length) {
+    measureItems();
+    reelX = -itemCenters[selectedCardIndex];
+    applyReelX();
+    updateItemDepth();
+  }
 });
 
 // ── Init ────────────────────────────────────────────────────────
@@ -2464,7 +2730,6 @@ if (document.body.dataset.compact === "true") {
   document.getElementById("renderPanel").classList.add("panel-visible");
   const fBtn = document.getElementById("footerToggle");
   fBtn.setAttribute("aria-expanded", "true");
-  fBtn.textContent = "\u25BC";
 }
 
 // ── Mobile Toggles ─────────────────────────────────────────────
@@ -2486,7 +2751,6 @@ document.getElementById("footerToggle").addEventListener("click", () => {
   const open = panel.classList.toggle("panel-visible");
   if (!open) { const rs=document.getElementById("renderStatus"); if(rs.classList.contains("fading")){rs.textContent="";rs.classList.remove("fading");} }
   btn.setAttribute("aria-expanded", String(open));
-  btn.textContent = open ? "\u25BC" : "\u25B2";
   // Sync header panels in compact mode
   if (document.body.dataset.compact === "true") {
     const p1 = document.getElementById("controlsPanel");
@@ -2496,6 +2760,28 @@ document.getElementById("footerToggle").addEventListener("click", () => {
     document.getElementById("toggle").style.display = "";
   }
 });
+
+// Swipe gesture on footer handle
+(function() {
+  const handle = document.getElementById("footerToggle");
+  let startY = 0, dragging = false;
+  const THRESHOLD = 30;
+  handle.addEventListener("pointerdown", e => {
+    if (!document.body.dataset.compact || document.body.dataset.compact !== "true") return;
+    startY = e.clientY; dragging = true;
+    handle.setPointerCapture(e.pointerId);
+  });
+  handle.addEventListener("pointermove", e => { if (!dragging) return; e.preventDefault(); });
+  handle.addEventListener("pointerup", e => {
+    if (!dragging) return;
+    dragging = false;
+    const dy = e.clientY - startY;
+    const panel = document.getElementById("renderPanel");
+    const isOpen = panel.classList.contains("panel-visible");
+    if (dy < -THRESHOLD && !isOpen) handle.click();   // swipe up → open
+    else if (dy > THRESHOLD && isOpen) handle.click(); // swipe down → close
+  });
+})();
 
 // ══════════════════════════════════════════════════════════════════
 // COLLAPSIBLE GROUP SYSTEM
