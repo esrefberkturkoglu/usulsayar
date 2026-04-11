@@ -1047,6 +1047,8 @@ let osmd = null;
 let notationReady = false;
 let notationEventToNote = [];   // eventIdx → noteColumnIdx
 let notationNotePositions = []; // [{x, w, cx}] in SVG viewBox coords
+let notationNoteTypes = [];     // noteColumnIdx → note type string
+let notationNoteUnits = [];     // noteColumnIdx → event unit count
 let lastNotationHlIdx = -1;
 
 function durationToNoteInfo(xmlDur) {
@@ -1115,6 +1117,8 @@ function generateMusicXML(usulName, speed) {
   const voice2 = [];
   let cumDur = 0;
   const evToNote = [];  // build event-to-note mapping
+  const noteTypes = []; // noteCol → note type string
+  const noteUnits = []; // noteCol → unit count
   let noteCol = 0;      // current note column index
 
   for (let i = 0; i < events.length; i++) {
@@ -1125,40 +1129,36 @@ function generateMusicXML(usulName, speed) {
 
     // ta-hek pair handling
     if (tahekIndices.has(i) && ev.label.replace(/[\d.½]+$/, "") === "ta") {
-      if (info.t === "whole" || info.t === "breve") {
-        // Whole/breve: merge into single note with combined duration (no chord without stems)
-        const hekDur = events[i + 1].units * 32 / speedNum;
-        const combinedDur = xmlDur + hekDur;
-        notes += noteXml(combinedDur, info, stemDir(ev.kind), 1, col);
-        cumDur += combinedDur;
-        evToNote[i] = noteCol;
-        evToNote[i + 1] = noteCol;
-        noteCol++;
-        i++;
-        continue;
-      }
-      // Notes with stems: stem-down for ta in ta-hek
+      // stem-down for ta in ta-hek (stem ignored for whole/breve by noteXml)
       notes += noteXml(xmlDur, info, "down", 1, col);
       cumDur += xmlDur;
-      evToNote[i] = noteCol++;
+      noteTypes.push(info.t); noteUnits.push(ev.units); evToNote[i] = noteCol++;
       continue;
     }
 
     if (tahekIndices.has(i) && ev.kind === "bothWeak") {
-      if (info.t === "whole" || info.t === "breve") continue; // already merged above
+      if (info.t === "whole" || info.t === "breve") {
+        // Stemless: sequential note in voice 1 only (no chord overlay)
+        notes += noteXml(xmlDur, info, stemDir(ev.kind), 1, col);
+        cumDur += xmlDur;
+        noteTypes.push(info.t); noteUnits.push(ev.units); evToNote[i] = noteCol++;
+        continue;
+      }
       // Voice 2 chord overlay for notes with stems
       notes += noteXml(xmlDur, info, stemDir(ev.kind), 1, col);
       voice2.push({ offset: cumDur, dur: xmlDur, info, color: col });
       cumDur += xmlDur;
-      evToNote[i] = noteCol++;
+      noteTypes.push(info.t); noteUnits.push(ev.units); evToNote[i] = noteCol++;
       continue;
     }
 
     notes += noteXml(xmlDur, info, stemDir(ev.kind), 1, col);
     cumDur += xmlDur;
-    evToNote[i] = noteCol++;
+    noteTypes.push(info.t); noteUnits.push(ev.units); evToNote[i] = noteCol++;
   }
   notationEventToNote = evToNote;
+  notationNoteTypes = noteTypes;
+  notationNoteUnits = noteUnits;
 
   // Voice 2: chord overlay at hek positions with forced stems
   if (voice2.length > 0) {
@@ -1229,7 +1229,7 @@ async function updateNotation() {
       svg.setAttribute("height", sh);
       container.style.minHeight = maxH + "px";
 
-      // Detect note positions for notation highlight
+      // Detect note positions for notation highlight (proportional allocation)
       detectNotePositions(svg, vbX, vbY, vbW, vbH);
       // Insert highlight rect behind all content
       const hlRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -1248,62 +1248,79 @@ async function updateNotation() {
 function detectNotePositions(svg, vbX, vbY, vbW, vbH) {
   notationNotePositions = [];
   if (!svg) return;
+  const expected = notationNoteUnits.length;
+  if (expected === 0) return;
   const svgRect = svg.getBoundingClientRect();
   if (svgRect.width === 0) return;
   const scaleX = vbW / svgRect.width;
-  const padL = 8; // viewBox units left of notehead (covers stem-down + gap)
-  const padR = 6;  // viewBox units before next notehead
 
-  // Scan path elements for notehead-like bounding boxes
+  // Scan path elements for notehead-like bounding boxes, tracking center and left edge
   const paths = svg.querySelectorAll("path");
-  const centers = [];
+  const noteData = [];
   for (const p of paths) {
     try {
       const b = p.getBBox();
-      // Noteheads: width 5-30, height 3-20, aspect ratio 0.8-4.0
       if (b.width >= 5 && b.width <= 30 && b.height >= 3 && b.height <= 20
           && b.width / b.height >= 0.8 && b.width / b.height <= 4.0) {
         const r = p.getBoundingClientRect();
         const cx = vbX + (r.left + r.width / 2 - svgRect.left) * scaleX;
-        centers.push(cx);
+        const left = vbX + (r.left - svgRect.left) * scaleX;
+        noteData.push({ cx, left });
       }
     } catch (_) {}
   }
-  if (centers.length === 0) return;
-  centers.sort((a, b) => a - b);
+  if (noteData.length === 0) return;
+  noteData.sort((a, b) => a.cx - b.cx);
 
-  // Group nearby noteheads (same x = chord) — threshold 5 viewBox units
-  const columns = [];
-  let grp = [centers[0]];
-  for (let i = 1; i < centers.length; i++) {
-    if (centers[i] - centers[i - 1] < 5) {
-      grp.push(centers[i]);
+  // Group nearby noteheads into columns (threshold 5 viewBox units)
+  const allColumns = [];
+  let grp = [noteData[0]];
+  for (let i = 1; i < noteData.length; i++) {
+    if (noteData[i].cx - noteData[i - 1].cx < 5) {
+      grp.push(noteData[i]);
     } else {
-      columns.push(grp.reduce((s, v) => s + v, 0) / grp.length);
-      grp = [centers[i]];
+      allColumns.push({
+        cx: grp.reduce((s, v) => s + v.cx, 0) / grp.length,
+        left: Math.min(...grp.map(v => v.left))
+      });
+      grp = [noteData[i]];
     }
   }
-  columns.push(grp.reduce((s, v) => s + v, 0) / grp.length);
+  allColumns.push({
+    cx: grp.reduce((s, v) => s + v.cx, 0) / grp.length,
+    left: Math.min(...grp.map(v => v.left))
+  });
+
+  // Take only the last N columns matching expected note count
+  // (earlier columns are time signature digits / other non-note elements)
+  if (allColumns.length < expected) return;
+  const columns = allColumns.slice(allColumns.length - expected);
 
   // Find barline: rightmost thin vertical rect in the SVG
-  let barlineX = vbX + vbW - padR;
+  let barlineX = null;
   for (const el of svg.querySelectorAll("rect")) {
     try {
       const b = el.getBBox();
       if (b.width < 3 && b.height > 15) {
         const r = el.getBoundingClientRect();
         const rx = vbX + (r.left + r.width / 2 - svgRect.left) * scaleX;
-        if (rx > barlineX * 0.8) barlineX = Math.max(barlineX, rx);
+        if (barlineX === null || rx > barlineX) barlineX = rx;
       }
     } catch (_) {}
   }
+  if (barlineX === null) barlineX = vbX + vbW - 4;
 
-  // Build positions: each note starts padL before its notehead,
-  // extends to padR before the next notehead (or barline for last)
-  for (let i = 0; i < columns.length; i++) {
-    const left = columns[i] - padL;
-    const right = i < columns.length - 1 ? columns[i + 1] - padR : barlineX;
-    notationNotePositions.push({ x: left, w: right - left, cx: columns[i] });
+  // Contiguous note-to-note allocation anchored to notehead left edges.
+  // Each highlight starts at its note's leftmost colored element and ends
+  // where the next note's colored element begins.
+  // Guarantees: rules 3 (elements inside), 4-5 (contiguous), 7 (left-edge start).
+  // Rule 1 (same width) is naturally approximated by OSMD's consistent spacing.
+  const barGap = 2;
+
+  for (let i = 0; i < expected; i++) {
+    const left = columns[i].left;
+    const right = i < expected - 1 ? columns[i + 1].left : barlineX - barGap;
+    notationNotePositions.push({ x: left, w: right - left, cx: columns[i].cx });
   }
 }
 
@@ -1316,7 +1333,6 @@ function updateNotationHighlight(activeEventIdx, color) {
   if (!pos || !svg) return;
   const rect = svg.getElementById("noteHl");
   if (!rect) return;
-  // In dark mode, SVG has filter:invert(1), so pre-invert the highlight color
   const isDark = document.body.getAttribute("data-theme") === "dark";
   const fill = isDark ? invertHex(color) : color;
   rect.setAttribute("x", pos.x);
@@ -2367,9 +2383,9 @@ function holdButton(btn, fn) {
   btn.addEventListener("pointercancel", stop);
 }
 
-bpmNumber.addEventListener("change", e => setBpmValue(e.target.value));
-holdButton(document.getElementById("bpmDec"), () => setBpmValue(bpm - 1));
-holdButton(document.getElementById("bpmInc"), () => setBpmValue(bpm + 1));
+bpmNumber.addEventListener("change", e => { const v = clamp(Number(e.target.value) || BPM_DEFAULT, BPM_MIN, BPM_MAX); if (v !== bpm) bpmPulsePaused = false; setBpmValue(e.target.value); });
+holdButton(document.getElementById("bpmDec"), () => { if (bpm > BPM_MIN) bpmPulsePaused = false; setBpmValue(bpm - 1); });
+holdButton(document.getElementById("bpmInc"), () => { if (bpm < BPM_MAX) bpmPulsePaused = false; setBpmValue(bpm + 1); });
 dumNumber.addEventListener("change", e => setDumValue(e.target.value));
 holdButton(document.getElementById("dumDec"), () => setDumValue(dumFreq - 1));
 holdButton(document.getElementById("dumInc"), () => setDumValue(dumFreq + 1));
@@ -2403,7 +2419,7 @@ function addScrollHandler(el, setter, getter, step) {
 dumNumber.addEventListener("wheel", e => { e.preventDefault(); setDumValue(dumFreq + (e.deltaY < 0 ? 1 : -1)); }, {passive:false});
 tekNumber.addEventListener("wheel", e => { e.preventDefault(); setTekValue(tekFreq + (e.deltaY < 0 ? 1 : -1)); }, {passive:false});
 addScrollHandler(volumeSlider, setVolumeValue, () => volume, 2);
-bpmNumber.addEventListener("wheel", e => { e.preventDefault(); setBpmValue(bpm + (e.deltaY < 0 ? 1 : -1)); }, {passive:false});
+bpmNumber.addEventListener("wheel", e => { e.preventDefault(); bpmPulsePaused = false; setBpmValue(bpm + (e.deltaY < 0 ? 1 : -1)); }, {passive:false});
 document.getElementById("repeatCount").addEventListener("wheel", e => {
   e.preventDefault();
   const el = e.target;
@@ -2523,7 +2539,11 @@ document.getElementById("footerToggle").addEventListener("click", () => {
     if (isCompact()) return; // mobile: always open, let tap-tempo run
     if (!isOpen(bpmGroup)) {
       e.stopImmediatePropagation();
+      bpmPulsePaused = true;
       openGroup(bpmGroup);
+    } else {
+      bpmPulsePaused = false;
+      startBpmPulse();
     }
   }, true);
 
@@ -2588,7 +2608,10 @@ document.getElementById("footerToggle").addEventListener("click", () => {
     if (!handle) return;
     handle.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (isOpen(group)) closeGroup(group);
+      if (isOpen(group)) {
+        if (group.id === "bpmGroup") { bpmPulsePaused = false; startBpmPulse(); }
+        closeGroup(group);
+      }
     });
   });
 
