@@ -28,9 +28,10 @@ body{
   grid-template-rows:1fr auto auto auto;
   grid-template-areas:
     "lh viz rh"
-    "ctrl ctrl ctrl"
     "car car car"
+    "ctrl ctrl ctrl"
     "foot foot foot";
+  /* VUR overlays ctrl row on desktop */
   height:100dvh;overflow:hidden;
   transition:background .3s,color .3s;
   user-select:none;
@@ -39,23 +40,56 @@ body{
 .controls-panel{display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-end}
 .controls-panel:last-of-type{justify-content:flex-start}
 /* ── Compact (mobile) mode — activated by JS when header overflows ── */
-[data-compact="true"]{grid-template-columns:0 1fr 0;grid-template-areas:"lh viz rh" "car car car" "ctrl ctrl ctrl" "foot foot foot"}
+[data-compact="true"]{grid-template-columns:0 1fr 0;grid-template-rows:1fr auto auto auto auto;grid-template-areas:"lh viz rh" "vur vur vur" "car car car" "ctrl ctrl ctrl" "foot foot foot"}
 [data-compact="true"] .hand-guide{position:absolute!important;width:40px!important;opacity:.15!important;z-index:0;pointer-events:none}
 [data-compact="true"] .hand-guide--left{left:0;top:0;bottom:0}
 [data-compact="true"] .hand-guide--right{right:0;top:0;bottom:0}
 [data-compact="true"] .mobile-toggle{
-  display:flex;align-items:center;justify-content:center;
-  width:100%;height:28px;border:none;border-radius:0;
-  background:transparent;color:var(--text3);cursor:pointer;flex-shrink:0;
-  padding:0;touch-action:none;
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  height:30px;padding:0 10px;border:none;border-radius:0;
+  background:transparent;color:var(--text2);cursor:pointer;flex-shrink:0;
+  touch-action:none;font-size:13px;font-weight:600;gap:4px;
+  position:relative;overflow:visible;isolation:isolate;
+  transition:color .2s;
 }
-[data-compact="true"] .mobile-toggle::after{
-  content:"";display:block;width:40px;height:4px;border-radius:2px;
-  background:var(--border);transition:background .2s,width .2s;
+[data-compact="true"] .mobile-toggle::before{
+  content:"";position:absolute;
+  top:0;left:-14px;right:-14px;bottom:-200px;
+  background:transparent;border:none;border-radius:0;
+  z-index:-1;
+  transition:background 340ms cubic-bezier(.22,1,.36,1);
 }
-[data-compact="true"] .mobile-toggle:active::after{background:var(--text3);width:48px}
-[data-compact="true"] .mobile-toggle[aria-expanded="true"]::after{background:var(--dum);width:48px}
-[data-compact="true"] .controls{justify-content:center;gap:8px;flex-wrap:wrap;position:relative}
+[data-compact="true"] .mobile-toggle:active::before{background:transparent}
+[data-compact="true"] .mobile-toggle[aria-expanded="true"]{color:var(--text)}
+[data-compact="true"] .mobile-toggle[aria-expanded="true"]::before{
+  background:transparent;
+}
+@keyframes lavaMove1{
+  0%  {background-position:0% 0%,   100% 100%, 100% 0%,  0% 100%, 0% 50%,  100% 50%, 0% 0%}
+  20% {background-position:15% 70%,  85% 15%,   80% 55%,  20% 35%, 10% 85%, 90% 25%,  0% 0%}
+  40% {background-position:25% 25%,  75% 85%,   85% 80%,  15% 10%, 0% 20%,  100% 75%, 0% 0%}
+  60% {background-position:5% 90%,   95% 40%,   90% 20%,  10% 70%, 20% 60%, 80% 10%,  0% 0%}
+  80% {background-position:20% 45%,  80% 65%,   75% 65%,  25% 80%, 5% 30%,  95% 85%,  0% 0%}
+  100%{background-position:0% 0%,   100% 100%, 100% 0%,  0% 100%, 0% 50%,  100% 50%, 0% 0%}
+}
+@keyframes lavaMove2{
+  0%  {background-size:140% 300%, 140% 300%, 140% 300%, 140% 300%, 140% 300%, 140% 300%, 100% 100%}
+  25% {background-size:140% 400%, 140% 250%, 140% 350%, 140% 270%, 140% 330%, 140% 380%, 100% 100%}
+  50% {background-size:140% 260%, 140% 380%, 140% 270%, 140% 360%, 140% 400%, 140% 250%, 100% 100%}
+  75% {background-size:140% 350%, 140% 320%, 140% 400%, 140% 250%, 140% 270%, 140% 340%, 100% 100%}
+  100%{background-size:140% 300%, 140% 300%, 140% 300%, 140% 300%, 140% 300%, 140% 300%, 100% 100%}
+}
+.toggle-cell{display:flex;align-items:center}
+.toggle-cell--left{justify-content:flex-end}
+.toggle-cell--right{justify-content:flex-start;gap:4px;transition:opacity .3s ease}
+.toggle-note{display:flex;align-items:center;opacity:.5}
+.toggle-note svg{height:14px;width:auto;fill:currentColor}
+[data-compact="true"] .mobile-toggle[aria-expanded="true"] .toggle-cell--right{opacity:0!important}
+#toggleBpm{font-variant-numeric:tabular-nums}
+.toggle-chev{opacity:.5;transition:transform .3s cubic-bezier(.22,1,.36,1)}
+[data-compact="true"] .mobile-toggle[aria-expanded="true"] .toggle-chev{transform:rotate(180deg);opacity:.8}
+[data-compact="true"] .btn-play{grid-area:vur;justify-self:center;align-self:center;position:relative;left:auto;top:auto;transform:none}
+[data-compact="true"] .controls{justify-content:center;gap:8px;flex-wrap:wrap;position:relative;overflow:hidden}
 [data-compact="true"] #headerToggle{display:none!important}
 [data-compact="true"] .controls-panel{
   display:none;width:100%;flex-direction:column;align-items:center;gap:8px;
@@ -64,46 +98,128 @@ body{
 [data-compact="true"] .controls-panel.open{display:contents}
 [data-compact="true"] .controls:has(.controls-panel.open){
   display:grid;grid-template-columns:1fr 1fr;gap:8px;
-  padding:8px 14px;justify-items:center;
+  padding:8px 14px;align-content:start;overflow:visible;
+  z-index:auto;position:relative;
 }
-[data-compact="true"] .controls:has(.controls-panel.open) #toggle{grid-column:1/-1;justify-self:center;order:-1}
 [data-compact="true"] .controls:has(.controls-panel.open) #headerToggle{display:none!important}
 [data-compact="true"] .controls-panel .slider-group,[data-compact="true"] .controls:has(.controls-panel.open) .slider-group{justify-content:center}
-[data-compact="true"] #tekGroup{order:1}
-[data-compact="true"] #dumGroup{order:2}
-[data-compact="true"] #bpmGroup{order:3}
-[data-compact="true"] #volumeGroup{order:4}
+#lavaOverlay{
+  display:block;grid-column:1/-1;grid-row:3/5;
+  z-index:9;opacity:.6;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 80% at 15% 30%, var(--tek) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 90% at 85% 70%, var(--dum) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 80% at 65% 10%, var(--dum) 0%, transparent 45%),
+    radial-gradient(ellipse 50% 70% at 35% 90%, var(--tek) 0%, transparent 45%),
+    radial-gradient(ellipse 40% 90% at 5% 60%, var(--tek) 0%, transparent 40%),
+    radial-gradient(ellipse 40% 80% at 95% 20%, var(--dum) 0%, transparent 40%),
+    linear-gradient(to right, var(--tek), var(--dum));
+  background-size:140% 300%, 140% 300%, 140% 300%, 140% 300%, 140% 300%, 140% 300%, 100% 100%;
+  filter:blur(40px) saturate(1);
+  transition:opacity 600ms ease;
+  animation:lavaMove1 23s ease-in-out infinite,lavaMove2 17s ease-in-out infinite;
+}
+[data-compact="true"] #lavaOverlay{grid-row:4/6;opacity:.75}
+[data-compact="true"] .controls:has(.controls-panel.open) ~ #lavaOverlay{opacity:.35}
+[data-compact="true"] .controls:has(.controls-panel.open) .slider-group,
+[data-compact="true"] .controls:has(.controls-panel.open) #renderPanel{background:transparent!important;border-color:transparent!important;pointer-events:none}
+[data-compact="true"] .controls:has(.controls-panel.open) .slider-group .mute-label,
+[data-compact="true"] .controls:has(.controls-panel.open) .slider-group .group-icon,
+[data-compact="true"] .controls:has(.controls-panel.open) .slider-group .group-expand,
+[data-compact="true"] .controls:has(.controls-panel.open) #renderPanel .btn-save,
+[data-compact="true"] .controls:has(.controls-panel.open) #renderPanel .group-expand{pointer-events:auto}
+[data-compact="true"] .controls:has(.controls-panel.open) .slider-group:has(:hover),
+[data-compact="true"] .controls:has(.controls-panel.open) .slider-group:has(:active),
+[data-compact="true"] .controls:has(.controls-panel.open) #renderPanel:has(:hover),
+[data-compact="true"] .controls:has(.controls-panel.open) #renderPanel:has(:active){z-index:10}
+[data-compact="true"] .app-footer:has(.mobile-toggle[aria-expanded="true"]) button:hover,
+[data-compact="true"] .app-footer:has(.mobile-toggle[aria-expanded="true"]) button:active{position:relative;z-index:10}
+[data-compact="true"] .app-footer:has(.mobile-toggle[aria-expanded="true"]) .footer-left,
+[data-compact="true"] .app-footer:has(.mobile-toggle[aria-expanded="true"]) .footer-right{z-index:10}
+[data-compact="true"] #tekGroup{order:1;transform:translate(var(--align-x,0px),36px)}
+[data-compact="true"] #dumGroup{order:2;transform:translate(calc(-1 * var(--align-x,0px)),36px)}
+[data-compact="true"] #bpmGroup{order:3;transform:translate(var(--align-x,0px),14px)}
+[data-compact="true"] #renderPanel{order:4;display:flex;align-items:center;gap:6px;justify-content:center;transform:translate(calc(-1 * var(--align-x,0px)),14px)}
+[data-compact="true"] .controls:has(.controls-panel.open) #renderPanel{background:transparent!important;border-color:transparent!important}
+[data-compact="true"] #renderPanel>.group-expand-handle{display:none}
+[data-compact="true"] #renderPanel .group-expand{max-width:none!important;opacity:1!important}
+[data-compact="true"] #renderPanel .btn-save{width:34px;height:34px;order:-1}
+[data-compact="true"] .mode-group #volumeGroup .group-icon{font-size:16px;z-index:2}
+[data-compact="true"] .mode-group #volumeGroup .group-expand{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:46px;height:46px;max-width:none;border-radius:50%;
+  padding:0;border:none;overflow:visible;
+  background:transparent;display:block;box-sizing:border-box;
+  opacity:0;pointer-events:none;
+  transition:opacity .15s ease;
+}
+[data-compact="true"] .mode-group #volumeGroup.vol-knob .group-expand{opacity:1}
+@media(hover:hover){[data-compact="true"] .mode-group #volumeGroup:hover .group-expand{opacity:.15}
+[data-compact="true"] .mode-group #volumeGroup.vol-knob:hover .group-expand{opacity:1}}
+@media(hover:none),(pointer:coarse){[data-compact="true"] .mode-group #volumeGroup .group-expand{opacity:.15}
+[data-compact="true"] .mode-group #volumeGroup.vol-knob .group-expand{opacity:1}}
+[data-compact="true"] .mode-group #volumeGroup .group-expand input[type="range"]{display:none}
+[data-compact="true"] .mode-group #volumeGroup .vol-ring{
+  position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 220deg,color-mix(in srgb,var(--tek) calc((1 - var(--vol,1)) * 100%),var(--dum)) 0deg,color-mix(in srgb,var(--tek) calc((1 - var(--vol,1)) * 100%),var(--dum)) calc(var(--vol,1) * 280deg),var(--bg2) calc(var(--vol,1) * 280deg),var(--bg2) 280deg,transparent 280deg);
+  -webkit-mask:radial-gradient(circle,transparent 58%,#000 60%);
+  mask:radial-gradient(circle,transparent 58%,#000 60%);
+}
 [data-compact="true"] .app-footer{flex-wrap:wrap;justify-content:flex-start}
-[data-compact="true"] .app-footer:has(#renderPanel.panel-visible){flex-wrap:wrap-reverse}
-[data-compact="true"] .footer-left{position:absolute;left:14px;bottom:6px;font-size:12px;white-space:nowrap}
+[data-compact="true"] .app-footer:has(.mobile-toggle[aria-expanded="true"]){flex-wrap:wrap-reverse;overflow:visible}
+[data-compact="true"] .footer-left{position:absolute;left:14px;bottom:6px;font-size:12px;white-space:nowrap;z-index:11}
 [data-compact="true"] .footer-center{display:contents}
-[data-compact="true"] #footerToggle{order:4;flex-basis:100%;align-self:center}
-[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) #footerToggle{order:4}
+[data-compact="true"] #footerToggle{order:4;flex-basis:100%;position:relative;z-index:1}
 [data-compact="true"] .mode-group{display:none}
-[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) .mode-group{display:flex;order:5;gap:10px}
-[data-compact="true"] .footer-right{position:absolute;right:14px;bottom:6px;font-size:12px;text-align:right;white-space:nowrap}
+[data-compact="true"] .app-footer:has(.mobile-toggle[aria-expanded="true"]) .mode-group{display:flex;order:5;gap:62px;flex-shrink:0;flex-basis:100%;justify-content:center;position:relative}
+[data-compact="true"] .mode-group #volumeGroup{position:absolute;left:50%;top:50%;transform:translate(-50%,calc(-50% - 96px));width:auto;min-width:auto;height:auto;min-height:auto;padding:0;border:none;background:transparent;z-index:8}
+[data-compact="true"] .mode-group #volumeGroup:has(:hover),
+[data-compact="true"] .mode-group #volumeGroup:has(:active){z-index:10}
+[data-compact="true"] .footer-right{position:absolute;right:14px;bottom:6px;font-size:12px;text-align:right;white-space:nowrap;z-index:11}
 [data-compact="true"] #renderStatus{display:none}
-[data-compact="true"] .app-footer:has(#renderPanel.panel-visible) #renderStatus:not(:empty){display:block;order:6;flex-basis:100%;font-size:9px;text-align:center;line-height:1.4;overflow:hidden;max-height:1.4em}
-[data-compact="true"] #renderPanel{order:5;flex-basis:100%;display:none}
-[data-compact="true"] #renderPanel.panel-visible{display:flex;flex:1;flex-basis:auto;justify-content:flex-end;flex-wrap:nowrap;padding-right:0;gap:8px}
+[data-compact="true"] .controls:has(.controls-panel.open) #renderStatus.marquee:not(:empty){display:block;position:absolute;top:28px;left:0;right:0;font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;line-height:16px;height:16px;pointer-events:none}
+@keyframes status-marquee{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+[data-compact="true"] #renderStatus.marquee>span{display:inline-block;padding-left:100%;animation:status-marquee 8s linear 1 forwards}
 
 /* ── Desktop bar overrides ── */
-body:not([data-compact="true"]) .controls{min-height:60px;background:transparent;border-top:none;gap:59px}
-body:not([data-compact="true"]) .controls-panel{gap:44px}
+body:not([data-compact="true"]) .controls{min-height:60px;background:transparent;border-top:none;gap:0}
+body:not([data-compact="true"]) .controls-panel{gap:44px;flex:1}
+body:not([data-compact="true"]) #controlsPanel{justify-content:flex-end;padding-right:calc(44px + 37.5px)}
+body:not([data-compact="true"]) #controlsPanel2{justify-content:flex-start;padding-left:calc(44px + 37.5px)}
+body:not([data-compact="true"]) .btn-play{grid-area:ctrl;justify-self:center;align-self:center;z-index:20}
+body:not([data-compact="true"]) .controls{background:transparent;border-top:none;z-index:auto;pointer-events:none}
+body:not([data-compact="true"]) .controls .slider-group,
+body:not([data-compact="true"]) .controls #renderPanel,
+body:not([data-compact="true"]) .app-footer #renderPanel{pointer-events:auto;opacity:.66;transition:opacity .25s ease}
+body:not([data-compact="true"]) .controls .slider-group.open{background:color-mix(in srgb,var(--bg3) 33%,transparent);border-color:color-mix(in srgb,var(--border) 33%,transparent)}
+body:not([data-compact="true"]) .controls .slider-group.open>.group-expand-handle{opacity:.2}
+body:not([data-compact="true"]) .controls .slider-group.open,
+body:not([data-compact="true"]) .controls #renderPanel.open,
+body:not([data-compact="true"]) .app-footer #renderPanel.open{z-index:10}
+body:not([data-compact="true"]) .controls .slider-group:hover,
+body:not([data-compact="true"]) .controls .slider-group:has(:active),
+body:not([data-compact="true"]) .controls #renderPanel:hover,
+body:not([data-compact="true"]) .controls #renderPanel:has(:active),
+body:not([data-compact="true"]) .app-footer #renderPanel:hover,
+body:not([data-compact="true"]) .app-footer #renderPanel:has(:active){z-index:10;opacity:1}
+body:not([data-compact="true"]) .theme-btn:hover,
+body:not([data-compact="true"]) .disk-btn:hover,
+body:not([data-compact="true"]) .btn-save:hover{z-index:10}
 body:not([data-compact="true"]) .carousel{background:transparent;border-top:none}
-body:not([data-compact="true"]) .app-footer{min-height:60px;background:transparent;border-top:none}
+body:not([data-compact="true"]) .app-footer{height:74px;min-height:auto;background:transparent;border-top:none;z-index:auto;justify-content:center}
+body:not([data-compact="true"]) .footer-left,body:not([data-compact="true"]) .footer-right{position:absolute;z-index:10}
 body:not([data-compact="true"]) .footer-center{position:relative}
-body:not([data-compact="true"]) #renderStatus{position:absolute;left:100%;margin-left:8px;top:50%;transform:translateY(-50%);white-space:nowrap;pointer-events:none}
+body:not([data-compact="true"]) #renderStatus{position:absolute;left:100%;margin-left:8px;top:50%;transform:translateY(-50%);white-space:nowrap;pointer-events:none;z-index:10}
 /* ── Mobile bar overrides ── */
 [data-compact="true"] .controls{background:transparent;border-top:none}
-[data-compact="true"] .carousel{background:transparent;border-top:none}
+[data-compact="true"] .carousel{background:transparent;border-top:none;position:relative;z-index:10}
 [data-compact="true"] .carousel-arrow{display:none}
-[data-compact="true"] .app-footer{background:transparent;border-top:none}
+[data-compact="true"] .app-footer{background:transparent;border-top:none;overflow:hidden}
 [data-compact="true"] .viz-area{gap:10px;padding-bottom:2px;padding-top:4px}
 /* ── Mobile: groups always open, no collapse, no arrows, symmetric padding ── */
 [data-compact="true"] .slider-group{gap:6px;border-color:var(--border);padding:6px 8px;background:var(--bg3)}
 [data-compact="true"] #volumeGroup{border-color:var(--border);background:var(--bg3)}
-[data-compact="true"] .group-expand{max-width:none!important;opacity:1!important;overflow:visible}
+[data-compact="true"] .group-expand:not(#volumeGroup .group-expand){max-width:none!important;opacity:1!important;overflow:visible}
 [data-compact="true"] .group-expand-handle{display:none!important}
 
 /* ── Controls ── */
@@ -112,29 +228,21 @@ body:not([data-compact="true"]) #renderStatus{position:absolute;left:100%;margin
   padding:8px 14px;background:var(--bg2);border-top:1px solid var(--border);
   flex-wrap:wrap;z-index:10;
 }
+@property --btn-mix{syntax:'<number>';inherits:true;initial-value:0}
 .btn-play{
-  width:72px;height:44px;border:none;border-radius:22px;
-  font-size:17px;font-weight:800;letter-spacing:.5px;cursor:pointer;
-  background:var(--dum);color:#fff;transition:background .2s,transform .1s;
+  width:60px;height:60px;border:none;border-radius:50%;
+  font-size:15px;font-weight:800;letter-spacing:1px;cursor:pointer;
+  background:linear-gradient(145deg,color-mix(in srgb,color-mix(in srgb,var(--tek) calc(var(--btn-mix) * 100%),var(--dum)) 85%,#fff),color-mix(in srgb,var(--tek) calc(var(--btn-mix) * 100%),var(--dum)));
+  color:#fff;transition:--btn-mix var(--btn-trans,400ms) ease var(--btn-delay,0ms),transform .15s ease;
   position:relative;z-index:20;
+  box-shadow:0 4px 14px color-mix(in srgb,color-mix(in srgb,var(--tek) calc(var(--btn-mix) * 100%),var(--dum)) 40%,transparent),
+    inset 0 1px 0 color-mix(in srgb,#fff 20%,transparent);
+  text-shadow:0 1px 2px rgba(0,0,0,.2);
 }
-.btn-play:active{transform:scale(.95)}
-[data-playing="false"] .btn-play{animation:vur-breathe 2s ease-in-out infinite}
-@keyframes vur-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-[data-playing="true"] .btn-play{background:#666;animation:none}
-.btn-play::after{
-  content:'';position:absolute;inset:-8px;border-radius:30px;
-  pointer-events:none;z-index:-1;
-}
-[data-playing="false"] .btn-play::after{
-  animation:vur-halo 2s ease-out infinite;
-  box-shadow:0 0 0 0 color-mix(in srgb,var(--dum) 60%,transparent);
-}
-@keyframes vur-halo{
-  0%{box-shadow:0 0 4px 0px color-mix(in srgb,var(--dum) 55%,transparent)}
-  50%{box-shadow:0 0 16px 18px color-mix(in srgb,var(--dum) 15%,transparent)}
-  100%{box-shadow:0 0 0 0 transparent}
-}
+.btn-play:active{transform:scale(.92);box-shadow:0 1px 4px color-mix(in srgb,color-mix(in srgb,var(--tek) calc(var(--btn-mix) * 100%),var(--dum)) 30%,transparent),inset 0 2px 6px rgba(0,0,0,.15)}
+[data-playing="false"] .btn-play{animation:vur-breathe 2.4s cubic-bezier(.4,0,.6,1) infinite}
+@keyframes vur-breathe{0%,100%{transform:scale(1)}55%{transform:scale(1.22)}}
+[data-playing="true"] .btn-play{animation:none}
 .slider-group,.render-row{position:relative}
 .slider-group{
   display:flex;align-items:center;gap:0;font-size:12px;color:var(--text2);
@@ -176,7 +284,7 @@ body:not([data-compact="true"]) #renderStatus{position:absolute;left:100%;margin
 .icon-group{position:relative}
 .group-icon{
   font-size:18px;flex-shrink:0;cursor:pointer;
-  width:34px;height:34px;border-radius:50%;
+  width:34px;height:34px;border-radius:50%;box-sizing:border-box;
   display:flex;align-items:center;justify-content:center;
   border:1.5px solid var(--border);background:var(--bg3);
   color:var(--text);transition:border-color .15s,background .15s,transform .1s;
@@ -229,6 +337,20 @@ body:not([data-compact="true"]) #renderStatus{position:absolute;left:100%;margin
 .bpm-step-btn:active{background:var(--ctrl-track)}
 .repeat-step-btn{width:22px;height:22px;font-size:13px}
 [data-compact="true"] .repeat-step-btn{width:32px;height:32px;font-size:15px}
+/* Vertical reel spinbox */
+.vreel{touch-action:none;user-select:none;cursor:ns-resize;width:56px}
+.vreel .spinbox{display:none}
+.vreel-window{width:30px;height:48px;overflow:hidden;position:relative;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 2%,black 28%,black 72%,transparent 98%);
+  mask-image:linear-gradient(to bottom,transparent 2%,black 28%,black 72%,transparent 98%)}
+.vreel-reel{position:relative;height:48px;will-change:transform}
+.vreel-cell{height:16px;line-height:16px;text-align:center;font-size:12px;color:var(--text3);white-space:nowrap;width:30px;position:absolute;top:16px;left:0}
+.vreel .spinbox-unit{position:static;right:auto;left:auto;margin-left:2px;text-align:left}
+.vreel-edit{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:30px;height:22px;box-sizing:border-box;
+  text-align:center;font-size:15px;font-weight:700;background:var(--bg);border:1px solid var(--tek);
+  border-radius:4px;color:var(--text);outline:none;z-index:2;padding:0;font-family:inherit;
+  -moz-appearance:textfield}
+.vreel-edit::-webkit-inner-spin-button,.vreel-edit::-webkit-outer-spin-button{-webkit-appearance:none}
 .mute-label{
   cursor:pointer;user-select:none;
   width:34px;height:34px;border-radius:50%;
@@ -245,9 +367,15 @@ body:not([data-compact="true"]) #renderStatus{position:absolute;left:100%;margin
 .mute-label[aria-pressed="true"]{opacity:.3;text-decoration:line-through}
 .mode-group{display:flex;align-items:center;gap:6px}
 .disk-btn,.theme-btn{
-  width:32px;height:32px;border:1px solid var(--border);
+  width:34px;height:34px;border:1px solid var(--border);
   border-radius:50%;background:var(--bg3);color:var(--text);
   font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+/* ── 48px touch targets (Apple HIG 44px + Material 48dp) ── */
+.mute-label::after,.group-icon::after,.btn-save::after,.disk-btn::after,.theme-btn::after{
+  content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:48px;height:48px;border-radius:50%;
 }
 .disk-btn[aria-pressed="true"]{border-color:var(--dum);color:var(--dum)}
 .disk-icon{display:block;width:16px;height:16px;flex-shrink:0}
@@ -275,7 +403,7 @@ body:not([data-compact="true"]) #renderStatus{position:absolute;left:100%;margin
   grid-area:viz;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
   position:relative;min-height:0;min-width:0;padding:8px;padding-bottom:16px;gap:16px;overflow:hidden;
 }
-.viz-container{position:relative;width:min(90%,50vh);aspect-ratio:1}
+.viz-container{position:relative;width:min(90%,50vh);aspect-ratio:1;flex-shrink:1;min-height:0;min-width:0}
 .segment-ring,.sweep-canvas{position:absolute;top:0;left:0;width:100%;height:100%}
 .sweep-canvas{pointer-events:none}
 [data-playing="false"] .sweep-canvas{opacity:0;transition:opacity .3s}
@@ -364,12 +492,33 @@ body:not([data-compact="true"]) .beat-labels.marquee{height:24px}
 }
 .car-item{
   white-space:nowrap;cursor:pointer;flex-shrink:0;
-  will-change:transform,opacity;
+  will-change:transform,opacity;position:relative;
   line-height:1;font-size:14px;font-weight:600;color:var(--text2);
 }
 .car-item .car-units{
-  font-size:9px;font-weight:700;vertical-align:super;margin-left:1px;opacity:.5;
+  position:absolute;left:100%;top:0;margin-left:1px;
+  font-size:9px;font-weight:700;opacity:.5;
 }
+
+/* ── Menu animations ── */
+@keyframes menuIn{from{opacity:0;translate:0 10px}to{opacity:1;translate:0 0}}
+@keyframes menuOut{from{opacity:1;translate:0 0}to{opacity:0;translate:0 10px}}
+@keyframes togglePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+[data-compact="true"] #footerToggle:not([data-touched]){animation:togglePulse 2.4s ease-in-out infinite}
+[data-compact="true"] .controls-panel.entering .slider-group{animation:menuIn .28s ease-out both}
+[data-compact="true"] .controls-panel.entering #tekGroup{animation-delay:0s}
+[data-compact="true"] .controls-panel.entering #dumGroup{animation-delay:.05s}
+[data-compact="true"] .controls-panel.entering #bpmGroup{animation-delay:.1s}
+[data-compact="true"] .controls-panel.entering #volumeGroup{animation-delay:.15s}
+[data-compact="true"] .controls-panel.exiting .slider-group{animation:menuOut .2s ease-in both}
+[data-compact="true"] .controls-panel.exiting #volumeGroup{animation-delay:0s}
+[data-compact="true"] .controls-panel.exiting #bpmGroup{animation-delay:.04s}
+[data-compact="true"] .controls-panel.exiting #dumGroup{animation-delay:.08s}
+[data-compact="true"] .controls-panel.exiting #tekGroup{animation-delay:.12s}
+[data-compact="true"] #renderPanel.entering{animation:menuIn .25s ease-out both}
+[data-compact="true"] .mode-group.entering{animation:menuIn .25s ease-out both;animation-delay:.06s}
+[data-compact="true"] #renderPanel.exiting{animation:menuOut .18s ease-in both}
+[data-compact="true"] .mode-group.exiting{animation:menuOut .18s ease-in both}
 
 /* ── Footer ── */
 .app-footer{
@@ -387,12 +536,13 @@ body:not([data-compact="true"]) .beat-labels.marquee{height:24px}
 .footer-center{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
 .render-row{display:flex;align-items:center;flex-wrap:wrap;justify-content:center;order:-1}
 body:not([data-compact="true"]) #renderPanel{padding:0;gap:0;border:none;border-radius:8px;background:transparent}
-body:not([data-compact="true"]) #renderPanel.open{padding:6px 8px;padding-right:22px;gap:6px;border:1px solid var(--border);background:var(--bg3)}
+body:not([data-compact="true"]) #renderPanel.open{padding:6px 8px;padding-right:22px;gap:6px;border:1px solid color-mix(in srgb,var(--border) 33%,transparent);background:color-mix(in srgb,var(--bg3) 33%,transparent)}
+body:not([data-compact="true"]) #renderPanel.open>.group-expand-handle{opacity:.2}
 body:not([data-compact="true"]) #renderPanel>.group-expand-handle{left:auto;right:0}
 #repeatCount{width:42px;padding-right:14px;padding-left:2px}
 #renderPanel .spinbox-unit{right:4px;font-size:15px;color:var(--text)}
 .btn-save{
-  width:32px;height:32px;border:1px solid var(--border);border-radius:50%;
+  width:34px;height:34px;border:1px solid var(--border);border-radius:50%;
   background:var(--bg3);color:var(--text);cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   transition:border-color .15s,background .15s,transform .1s;padding:0;
@@ -448,8 +598,6 @@ body:not([data-compact="true"]) #renderPanel>.group-expand-handle{left:auto;righ
     </div>
   </div>
 
-  <button id="toggle" class="btn-play">VUR</button>
-
   <div class="controls-panel" id="controlsPanel2">
     <div class="slider-group bpm-group" id="dumGroup" data-expand="ltr">
       <label class="mute-label" id="dumMute" data-voice="dum" aria-pressed="false" role="button" tabindex="0">D</label>
@@ -459,7 +607,7 @@ body:not([data-compact="true"]) #renderPanel>.group-expand-handle{left:auto;righ
 
     <div class="slider-group icon-group" id="volumeGroup" data-expand="ltr">
       <span class="group-icon" id="volumeIcon">&#128266;</span>
-      <div class="group-expand"><input id="volume" type="range" min="0" max="100" value="100"/></div>
+      <div class="group-expand"><input id="volume" type="range" min="0" max="100" value="100"/><div class="vol-ring"></div></div>
     </div>
   </div>
 </header>
@@ -491,6 +639,8 @@ body:not([data-compact="true"]) #renderPanel>.group-expand-handle{left:auto;righ
   <div class="hand-bar" id="rightBar"></div>
 </aside>
 
+<button id="toggle" class="btn-play">VUR</button>
+
 <nav class="carousel">
   <div class="carousel-inner">
     <button class="carousel-arrow" id="carPrev" aria-label="Önceki usül"><svg viewBox="0 0 24 24"><polyline points="15 6 9 12 15 18"/></svg></button>
@@ -499,6 +649,7 @@ body:not([data-compact="true"]) #renderPanel>.group-expand-handle{left:auto;righ
   </div>
 </nav>
 
+<div id="lavaOverlay"></div>
 <footer class="app-footer">
   <div class="footer-left">&copy; 2026 <a href="https://esrefberkturkoglu.com" target="_blank" rel="noopener">Eşref Berk Türkoğlu</a></div>
   <div class="footer-center">
@@ -507,7 +658,7 @@ body:not([data-compact="true"]) #renderPanel>.group-expand-handle{left:auto;righ
       <button class="disk-btn" id="diskToggle" aria-pressed="false" aria-label="Disk modu" title="Disk modu"><svg viewBox="0 0 16 16" width="16" height="16" class="disk-icon"><circle cx="8" cy="8" r="7" fill="currentColor" stroke="none"/><path d="M8 1A7 7 0 0 1 8 15Z" fill="var(--bg)"/></svg></button>
     </div>
     <span class="render-status" id="renderStatus"></span>
-    <button class="mobile-toggle" id="footerToggle" aria-label="Menüyü aç/kapat" aria-expanded="false"></button>
+    <button class="mobile-toggle" id="footerToggle" aria-label="Menüyü aç/kapat" aria-expanded="false"><span class="toggle-cell toggle-cell--left"></span><svg class="toggle-chev" viewBox="0 0 10 6" width="10" height="6"><polyline points="1 5 5 1 9 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="toggle-cell toggle-cell--right"><span class="toggle-note" id="toggleNoteCell"></span><span id="toggleBpm">60</span></span></button>
   </div>
   <div class="render-row" id="renderPanel" data-expand="rtl">
     <button class="group-expand-handle" aria-label="Kapat"><svg viewBox="0 0 10 48"><polyline points="1 2 9 24 1 46"/></svg></button>
@@ -722,11 +873,13 @@ function setBpmValue(value) {
   const oldBpm = bpm;
   bpm = clamp(Number(value) || BPM_DEFAULT, BPM_MIN, BPM_MAX);
   bpmNumber.value = bpm;
+  const tb = document.getElementById("toggleBpm"); if(tb) tb.textContent = bpm;
   if (isPlaying && oldBpm !== bpm) {
     resyncAfterBpmChange(oldBpm, bpm);
     volPulseNeedsSync = true;
   }
   startBpmPulse();
+  document.getElementById("toggle").style.setProperty("--beat-ms", (60000/bpm)+"ms");
 }
 
 let bpmPulseTimer = null;
@@ -1403,6 +1556,7 @@ document.getElementById("notationSpeeds")?.addEventListener("click", e => {
   notationSpeed = btn.dataset.speed;
   document.querySelectorAll("#notationSpeeds button").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
+  syncToggleNote();
   updateNotation();
   if (isPlaying && oldSpeed !== notationSpeed) {
     resyncAfterSpeedChange(oldSpeed, notationSpeed);
@@ -1486,7 +1640,11 @@ async function startTransport() {
   cancelCountIn();
   isPlaying = true;
   document.body.dataset.playing = "true";
-  document.getElementById("toggle").textContent = "DUR";
+  const tb = document.getElementById("toggle");
+  tb.textContent = "DUR";
+  // Instantly snap button color to first beat
+  tb.style.setProperty("--btn-trans", "0ms");
+  tb.style.setProperty("--btn-mix", pattern[0].kind === "dum" ? "0" : "1");
   startBpmPulse();
   const spbMs = secondsPerBeat() * 1000;
   // Count-in: 2 preparatory ring pulses, playback starts on the 3rd
@@ -1505,7 +1663,11 @@ function stopTransport() {
   timerId = null;
   isPlaying = false;
   document.body.dataset.playing = "false";
-  document.getElementById("toggle").textContent = "VUR";
+  const tb2 = document.getElementById("toggle");
+  tb2.textContent = "VUR";
+  tb2.style.removeProperty("--btn-mix");
+  tb2.style.removeProperty("--btn-trans");
+  tb2.style.removeProperty("--btn-delay");
   stopSweepAnimation();
   stopVolPulse();
   fitBeatLabels();
@@ -1597,7 +1759,8 @@ async function renderSelectedPatternToWav() {
   repeatInput.value=repeatCount;
   const localBpm=bpm,localDumFreq=dumFreq,localTekFreq=tekFreq,localVolume=volume;
   const localPattern=pattern,localUsulName=currentUsulName,localSoloMode=soloMode;
-  renderBtn.disabled=true;renderStatus.textContent="Oluşturuluyor…";
+  const compact=document.body.dataset.compact==="true";
+  renderBtn.disabled=true;if(!compact)renderStatus.textContent="Oluşturuluyor…";
   try{
     const spb=secondsPerBeat(localBpm);
     const patternCycleDuration=localPattern.reduce((sum,ev)=>sum+ev.units*spb,0);
@@ -1626,12 +1789,25 @@ async function renderSelectedPatternToWav() {
     const a=document.createElement("a");a.href=url;a.download=fileName;
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
-    renderStatus.textContent=`${fileName} oluşturuldu.`;
-    renderStatus.classList.remove("fading");renderStatus.offsetWidth;renderStatus.classList.add("fading");
-  }catch(error){console.error(error);renderStatus.textContent="Kaydetme başarısız.";
-    renderStatus.classList.remove("fading");renderStatus.offsetWidth;renderStatus.classList.add("fading");}
+    if(compact){
+      renderStatus.classList.remove("marquee");renderStatus.innerHTML=`<span>${fileName} oluşturuldu.</span>`;renderStatus.offsetWidth;renderStatus.classList.add("marquee");
+      renderStatus.querySelector("span").addEventListener("animationend",()=>{renderStatus.innerHTML="";renderStatus.classList.remove("marquee");},{once:true});
+    }else{
+      renderStatus.textContent=`${fileName} oluşturuldu.`;
+      renderStatus.classList.remove("fading");renderStatus.offsetWidth;renderStatus.classList.add("fading");
+      setTimeout(()=>{renderStatus.textContent="";renderStatus.classList.remove("fading");},10000);
+    }
+  }catch(error){console.error(error);
+    if(compact){
+      renderStatus.classList.remove("marquee");renderStatus.innerHTML=`<span>Kaydetme başarısız.</span>`;renderStatus.offsetWidth;renderStatus.classList.add("marquee");
+      renderStatus.querySelector("span").addEventListener("animationend",()=>{renderStatus.innerHTML="";renderStatus.classList.remove("marquee");},{once:true});
+    }else{
+      renderStatus.textContent="Kaydetme başarısız.";
+      renderStatus.classList.remove("fading");renderStatus.offsetWidth;renderStatus.classList.add("fading");
+      setTimeout(()=>{renderStatus.textContent="";renderStatus.classList.remove("fading");},10000);
+    }
+  }
   finally{renderBtn.disabled=false;}
-  setTimeout(()=>{renderStatus.textContent="";renderStatus.classList.remove("fading");},10000);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2292,6 +2468,17 @@ onScheduledEvent = function(stepIndex, audioTime, event, rightNext, leftNext) {
   }
   const segUnits = segIdx !== undefined ? visualSegments[segIdx].units : event.units;
   triggerHandBar(event, audioTime, rightNext, leftNext, segUnits);
+  // Beat-color: transition toward NEXT beat's color over this event's duration
+  const nextEvt = pattern[(stepIndex + 1) % pattern.length];
+  const nextMix = nextEvt.kind === "dum" ? "0" : "1";
+  setTimeout(() => {
+    const tb = document.getElementById("toggle");
+    const transDur = spbMs * 0.5;
+    const delayDur = event.units * spbMs - transDur;
+    tb.style.setProperty("--btn-delay", delayDur + "ms");
+    tb.style.setProperty("--btn-trans", transDur + "ms");
+    tb.style.setProperty("--btn-mix", nextMix);
+  }, delayMs);
   // Mute button pulses (once per event)
   if (volume > 0) {
     setTimeout(() => {
@@ -2686,6 +2873,179 @@ document.getElementById("repeatCount").addEventListener("wheel", e => {
   el.value = clamp(Number(el.value) + (e.deltaY < 0 ? 1 : -1), REPEAT_MIN, REPEAT_MAX);
 }, {passive:false});
 
+// ── Vertical Reel Spinbox ──────────────────────────────────────
+function initVReel(inputEl, setValueFn) {
+  const ROW_H = 16, CELLS = 5;
+  const mn = Number(inputEl.min) || 0, mx = Number(inputEl.max) || 999;
+
+  // Hide adjacent step buttons
+  const exp = inputEl.closest('.group-expand');
+  if (exp) exp.querySelectorAll('.bpm-step-btn').forEach(b => { b.style.display = 'none'; });
+
+  // Convert spinbox-wrap to vreel
+  const wrap = inputEl.closest('.spinbox-wrap');
+  wrap.classList.add('vreel');
+  const win = document.createElement('div');
+  win.className = 'vreel-window';
+  const rl = document.createElement('div');
+  rl.className = 'vreel-reel';
+  const cells = [];
+  for (let i = 0; i < CELLS; i++) {
+    const c = document.createElement('span');
+    c.className = 'vreel-cell';
+    rl.appendChild(c); cells.push(c);
+  }
+  win.appendChild(rl);
+  wrap.insertBefore(win, wrap.firstChild);
+
+  let sp = 0, vel = 0, aid = null, drg = false, sy, ly, lt;
+  const FR = 0.92, SPR = 0.14;
+
+  function gv() { return Number(inputEl.value); }
+
+  const ADEG = 30, WRAD = 32;
+  const grp = inputEl.closest('.slider-group') || inputEl.closest('.render-row');
+  const isRenderRow = grp && grp.classList.contains('render-row');
+  function getFlipX() {
+    if (isRenderRow) return document.body.dataset.compact === 'true' ? -1 : 1;
+    return grp && grp.dataset.expand === 'ltr' ? -1 : 1;
+  }
+  function render() {
+    const fx = getFlipX();
+    const eff = gv() - sp / ROW_H;
+    const dc = clamp(Math.round(eff), mn, mx);
+    const fr = eff - dc;
+    for (let i = 0; i < CELLS; i++) {
+      const val = dc - 2 + i;
+      cells[i].textContent = (val >= mn && val <= mx) ? val : '';
+      const dist = (i - 2) - fr;
+      const a = dist * ADEG * Math.PI / 180;
+      const y = WRAD * Math.sin(a);
+      const x = fx * WRAD * (Math.cos(a) - 1);
+      const sy = Math.cos(a);
+      const d = Math.abs(dist), t = Math.min(d / 2, 1);
+      cells[i].style.opacity = 1 - t * 0.7;
+      cells[i].style.fontWeight = t < 0.35 ? '700' : '400';
+      cells[i].style.color = t < 0.35 ? 'var(--text)' : '';
+      cells[i].style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scaleY(' + sy.toFixed(3) + ')';
+    }
+  }
+
+  function commit(nv) {
+    nv = clamp(Math.round(nv), mn, mx);
+    sp = 0; aid = null;
+    if (setValueFn) setValueFn(nv);
+    else inputEl.value = nv;
+    render();
+  }
+
+  function snap() {
+    cancel();
+    const eff = gv() - sp / ROW_H;
+    const tgt = clamp(Math.round(eff), mn, mx);
+    const tpx = (gv() - tgt) * ROW_H;
+    (function tick() {
+      sp += (tpx - sp) * SPR;
+      if (Math.abs(tpx - sp) < 0.4) { commit(tgt); return; }
+      render();
+      aid = requestAnimationFrame(tick);
+    })();
+  }
+
+  function mom() {
+    cancel();
+    (function tick() {
+      sp += vel * ROW_H;
+      vel *= FR;
+      const eff = gv() - sp / ROW_H;
+      if (eff < mn - 0.3 || eff > mx + 0.3 || Math.abs(vel) < 0.02) { snap(); return; }
+      render();
+      aid = requestAnimationFrame(tick);
+    })();
+  }
+
+  function cancel() { if (aid) { cancelAnimationFrame(aid); aid = null; } }
+
+  // Pointer drag
+  win.addEventListener('pointerdown', e => {
+    e.preventDefault(); cancel();
+    drg = false; sy = ly = e.clientY; lt = performance.now(); vel = 0;
+    win.setPointerCapture(e.pointerId);
+  });
+  win.addEventListener('pointermove', e => {
+    if (sy == null) return;
+    if (!drg && Math.abs(e.clientY - sy) > 4) drg = true;
+    if (drg) {
+      e.preventDefault();
+      const dy = e.clientY - ly, dt = Math.max(1, performance.now() - lt);
+      const eff = gv() - sp / ROW_H;
+      const bound = (eff <= mn && dy > 0) || (eff >= mx && dy < 0);
+      sp += dy * (bound ? 0.25 : 1);
+      vel = (dy / ROW_H) / (dt / 16);
+      ly = e.clientY; lt = performance.now();
+      render();
+    }
+  });
+  win.addEventListener('pointerup', e => {
+    if (sy == null) return;
+    const was = drg; sy = null; drg = false;
+    if (!was) { enterEdit(); return; }
+    Math.abs(vel) > 0.15 ? mom() : snap();
+  });
+  win.addEventListener('pointercancel', () => { sy = null; drg = false; snap(); });
+
+  // Wheel
+  win.addEventListener('wheel', e => {
+    e.preventDefault(); cancel();
+    const dir = e.deltaY > 0 ? -1 : 1;
+    const nv = clamp(gv() + dir, mn, mx);
+    if (nv === gv()) return;
+    const tpx = (gv() - nv) * ROW_H;
+    (function tick() {
+      sp += (tpx - sp) * SPR;
+      if (Math.abs(tpx - sp) < 0.4) { commit(nv); return; }
+      render();
+      aid = requestAnimationFrame(tick);
+    })();
+  }, {passive: false});
+
+  // Tap to edit
+  function enterEdit() {
+    const ed = document.createElement('input');
+    ed.className = 'vreel-edit';
+    ed.type = 'number'; ed.min = mn; ed.max = mx;
+    ed.value = gv(); ed.inputMode = 'numeric';
+    win.appendChild(ed); ed.focus(); ed.select();
+    function done() {
+      if (!ed.parentNode) return;
+      const nv = clamp(Number(ed.value) || gv(), mn, mx);
+      ed.remove(); commit(nv);
+    }
+    ed.addEventListener('blur', done);
+    ed.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); ed.blur(); }
+      if (e.key === 'Escape') { ed.value = gv(); ed.blur(); }
+    });
+  }
+
+  // Auto-sync when value set externally
+  const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+  Object.defineProperty(inputEl, 'value', {
+    get() { return desc.get.call(this); },
+    set(v) { desc.set.call(this, v); if (!aid && !drg) render(); }
+  });
+
+  render();
+  return render;
+}
+
+// Initialize vertical reels for all spinboxes
+const vreelRenderers = [];
+initVReel(document.getElementById('bpmNumber'), v => { bpmPulsePaused = false; setBpmValue(v); });
+initVReel(document.getElementById('tekFreqNumber'), setTekValue);
+initVReel(document.getElementById('dumFreqNumber'), setDumValue);
+vreelRenderers.push(initVReel(document.getElementById('repeatCount'), null));
+
 // Resize handler
 window.addEventListener("resize", () => {
   resizeSweepCanvas();
@@ -2712,25 +3072,111 @@ requestAnimationFrame(() => resizeSweepCanvas());
 // ── Compact Mode Detection ─────────────────────────────────────
 // Min width for all 4 groups open + VUR + padding + gaps in a single row
 const COMPACT_BREAKPOINT = 880;
+let wasCompact = null;
+function alignControlButtons() {
+  if (document.body.dataset.compact !== 'true') return;
+  var ctrl = document.querySelector('.controls');
+  var tekBtn = document.querySelector('#tekGroup .mute-label');
+  var themeBtn = document.querySelector('.theme-btn');
+  if (!ctrl || !tekBtn || !themeBtn) return;
+  ctrl.style.setProperty('--align-x', '0px');
+  ctrl.offsetHeight; // force reflow so both measurements use --align-x:0
+  var themeR = themeBtn.getBoundingClientRect();
+  if (themeR.width === 0) return;
+  var tekR = tekBtn.getBoundingClientRect();
+  var offset = (themeR.left + themeR.width / 2) - (tekR.left + tekR.width / 2);
+  ctrl.style.setProperty('--align-x', offset + 'px');
+}
+
 function updateCompactMode() {
-  document.body.dataset.compact = String(window.innerWidth < COMPACT_BREAKPOINT);
+  const isNowCompact = window.innerWidth < COMPACT_BREAKPOINT;
+  document.body.dataset.compact = String(isNowCompact);
+
+  if (isNowCompact === wasCompact) {
+    if (isNowCompact) alignControlButtons();
+    return;
+  }
+  const prev = wasCompact;
+  wasCompact = isNowCompact;
+  vreelRenderers.forEach(fn => fn());
+
+  const ctrl2 = document.getElementById("controlsPanel2");
+  const rp = document.getElementById("renderPanel");
+  const vg = document.getElementById("volumeGroup");
+  const footer = document.querySelector(".app-footer");
+
+  if (isNowCompact) {
+    // Close any desktop-open groups before switching to mobile layout
+    document.querySelectorAll('.slider-group.open, #renderPanel.open').forEach(g => g.classList.remove('open'));
+    // Move renderPanel into controls, volumeGroup into mode-group
+    ctrl2.appendChild(rp);
+    const modeGrp = document.querySelector(".mode-group");
+    modeGrp.appendChild(vg);
+    // Move renderStatus into controls for marquee positioning
+    const ctrl = document.querySelector(".controls");
+    const rs = document.getElementById("renderStatus");
+    ctrl.appendChild(rs);
+    document.getElementById("controlsPanel").classList.add("open");
+    ctrl2.classList.add("open");
+    rp.classList.add("panel-visible", "open");
+    const fBtn = document.getElementById("footerToggle");
+    fBtn.setAttribute("aria-expanded", "true");
+    fBtn.setAttribute("data-touched", "");
+    const pr = fBtn.querySelector(".toggle-cell--right");
+    if (pr) pr.style.opacity = "0";
+    requestAnimationFrame(() => requestAnimationFrame(alignControlButtons));
+  } else if (prev !== null) {
+    // Restore: renderPanel back to footer, volumeGroup back to controlsPanel2
+    footer.insertBefore(rp, footer.querySelector(".footer-right"));
+    ctrl2.appendChild(vg);
+    // Move renderStatus back to footer-center
+    const rs = document.getElementById("renderStatus");
+    rs.innerHTML = ""; rs.classList.remove("fading", "marquee");
+    document.querySelector(".footer-center").insertBefore(rs, document.getElementById("footerToggle"));
+    rp.classList.remove("panel-visible", "open", "entering", "exiting");
+    vg.classList.remove("vol-knob", "vol-sliding", "entering", "exiting");
+    document.getElementById("controlsPanel").classList.remove("open", "entering", "exiting");
+    ctrl2.classList.remove("open", "entering", "exiting");
+    const fBtn = document.getElementById("footerToggle");
+    fBtn.setAttribute("aria-expanded", "false");
+    const pr = fBtn.querySelector(".toggle-cell--right");
+    if (pr) pr.style.opacity = "";
+  }
 }
 updateCompactMode();
-window.addEventListener("resize", updateCompactMode);
+
+let menuAnimating = false;
+function centerCarousel() {
+  const car = document.querySelector('.carousel');
+  if (document.body.dataset.compact !== 'true' || menuAnimating) {
+    if (document.body.dataset.compact !== 'true') car.style.transform = '';
+    return;
+  }
+  car.style.transform = 'translateY(0)';
+  const vurBottom = document.getElementById('toggle').getBoundingClientRect().bottom;
+  const ft = document.getElementById('footerToggle');
+  const open = ft.getAttribute('aria-expanded') === 'true';
+  const targetTop = open
+    ? document.getElementById('volumeGroup').getBoundingClientRect().top
+    : ft.getBoundingClientRect().top;
+  const r = car.getBoundingClientRect();
+  const offset = (vurBottom + targetTop) / 2 - (r.top + r.bottom) / 2;
+  car.style.transform = `translateY(${offset}px)`;
+}
+centerCarousel();
+window.addEventListener("resize", () => { updateCompactMode(); centerCarousel(); });
 
 // ── Mobile-first defaults: disk mode on, toggles open ──────────
 diskMode = true;
 diskToggleBtn.setAttribute("aria-pressed", "true");
 fitBeatLabels();
 
-if (document.body.dataset.compact === "true") {
-  // Show panels (not group-expand — groups start collapsed)
-  document.getElementById("controlsPanel").classList.add("open");
-  document.getElementById("controlsPanel2").classList.add("open");
-  document.getElementById("renderPanel").classList.add("panel-visible");
-  const fBtn = document.getElementById("footerToggle");
-  fBtn.setAttribute("aria-expanded", "true");
+function syncToggleNote(){
+  const cell=document.getElementById("toggleNoteCell");if(!cell)return;
+  const active=document.querySelector("#notationSpeeds button.active svg");
+  if(active){cell.innerHTML="";cell.appendChild(active.cloneNode(true));}
 }
+syncToggleNote();
 
 // ── Mobile Toggles ─────────────────────────────────────────────
 document.getElementById("headerToggle").addEventListener("click", () => {
@@ -2741,45 +3187,236 @@ document.getElementById("headerToggle").addEventListener("click", () => {
   panel2.classList.toggle("open", open);
   btn.setAttribute("aria-expanded", String(open));
   btn.textContent = open ? "\u25B2" : "\u25BC";
-  if (document.body.dataset.compact === "true") {
-    document.getElementById("toggle").style.display = "";
-  }
 });
-document.getElementById("footerToggle").addEventListener("click", () => {
+// ── Animated mobile menu toggle (height-driven) ──
+function toggleMobileMenu(forceOpen) {
+  if (menuAnimating) return;
+  const p1 = document.getElementById("controlsPanel");
+  const p2 = document.getElementById("controlsPanel2");
   const panel = document.getElementById("renderPanel");
+  const modeGrp = document.querySelector(".mode-group");
+  const vg = document.getElementById("volumeGroup");
   const btn = document.getElementById("footerToggle");
-  const open = panel.classList.toggle("panel-visible");
-  if (!open) { const rs=document.getElementById("renderStatus"); if(rs.classList.contains("fading")){rs.textContent="";rs.classList.remove("fading");} }
-  btn.setAttribute("aria-expanded", String(open));
-  // Sync header panels in compact mode
-  if (document.body.dataset.compact === "true") {
-    const p1 = document.getElementById("controlsPanel");
-    const p2 = document.getElementById("controlsPanel2");
-    p1.classList.toggle("open", open);
-    p2.classList.toggle("open", open);
-    document.getElementById("toggle").style.display = "";
-  }
-});
+  const ctrl = document.querySelector(".controls");
+  const footer = document.querySelector(".app-footer");
+  const isOpen = panel.classList.contains("panel-visible");
+  const shouldOpen = forceOpen !== undefined ? forceOpen : !isOpen;
+  if (shouldOpen === isOpen) return;
 
-// Swipe gesture on footer handle
+  btn.setAttribute("data-touched", "");
+  menuAnimating = true;
+  const DURATION = 340;
+  const EASING = "cubic-bezier(.22,1,.36,1)";
+  const pillRight = btn.querySelector(".toggle-cell--right");
+
+const vizArea = document.querySelector('.viz-area');
+  const vurBtn = document.getElementById('toggle');
+  const carousel = document.querySelector('.carousel');
+  const body = document.body;
+
+  if (shouldOpen) {
+    // Move renderStatus into controls for marquee positioning
+    const rs = document.getElementById("renderStatus");
+    ctrl.appendChild(rs);
+
+    // 1. Measure pre-open row heights
+    const footerH0 = footer.getBoundingClientRect().height;
+    const ctrlH0 = ctrl.getBoundingClientRect().height;
+
+    // 2. Make content visible (layout recalcs but not yet rendered)
+    p1.classList.add("open", "entering");
+    p2.classList.add("open", "entering");
+    panel.classList.add("panel-visible", "open", "entering");
+    modeGrp.classList.add("entering");
+    btn.setAttribute("aria-expanded", "true");
+    if(pillRight) pillRight.style.opacity = "0";
+
+    // 3. Measure post-open row heights (forces sync layout)
+    const vurH = vurBtn.getBoundingClientRect().height;
+    const carH = carousel.getBoundingClientRect().height;
+    const ctrlH1 = ctrl.getBoundingClientRect().height;
+    const footerH1 = footer.getBoundingClientRect().height;
+    const totalH = body.getBoundingClientRect().height;
+    const vizH0 = totalH - vurH - carH - ctrlH0 - footerH0;
+    const vizH1 = totalH - vurH - carH - ctrlH1 - footerH1;
+
+    // 4. Lock grid at pre-open state, clip overflow
+    ctrl.style.overflow = "hidden";
+    footer.style.overflow = "hidden";
+    body.style.gridTemplateRows = `${vizH0}px ${vurH}px ${carH}px ${ctrlH0}px ${footerH0}px`;
+    body.offsetHeight; // force reflow to commit pre-open state
+
+    // 5. Animate grid rows to post-open state
+    body.style.transition = `grid-template-rows ${DURATION}ms ${EASING}`;
+    body.style.gridTemplateRows = `${vizH1}px ${vurH}px ${carH}px ${ctrlH1}px ${footerH1}px`;
+
+    setTimeout(() => {
+      body.style.transition = "";
+      body.style.gridTemplateRows = "";
+      ctrl.style.overflow = "";
+      footer.style.overflow = "";
+      p1.classList.remove("entering");
+      p2.classList.remove("entering");
+      panel.classList.remove("entering");
+      modeGrp.classList.remove("entering");
+      menuAnimating = false;
+      alignControlButtons();
+      centerCarousel();
+    }, DURATION + 20);
+
+  } else {
+    // 1. Measure open row heights
+    const vurH = vurBtn.getBoundingClientRect().height;
+    const carH = carousel.getBoundingClientRect().height;
+    const ctrlH0 = ctrl.getBoundingClientRect().height;
+    const footerH0 = footer.getBoundingClientRect().height;
+    const vizH0 = vizArea.getBoundingClientRect().height;
+
+    // 2. Calculate closed footer height
+    footer.style.overflow = "hidden";
+    const toggleH = btn.getBoundingClientRect().height;
+    const footerStyle = getComputedStyle(footer);
+    const footerH1 = Math.max(
+      toggleH + parseFloat(footerStyle.paddingTop) + parseFloat(footerStyle.paddingBottom),
+      parseFloat(footerStyle.minHeight) || 0
+    );
+    footer.style.overflow = "";
+
+    const totalH = body.getBoundingClientRect().height;
+    const vizH1 = totalH - vurH - carH - 0 - footerH1;
+
+    // 3. Start exit animations, clip overflow
+    ctrl.style.overflow = "hidden";
+    footer.style.overflow = "hidden";
+    p1.classList.add("exiting");
+    p2.classList.add("exiting");
+    panel.classList.add("exiting");
+    modeGrp.classList.add("exiting");
+
+    // 4. Lock grid at open state
+    body.style.gridTemplateRows = `${vizH0}px ${vurH}px ${carH}px ${ctrlH0}px ${footerH0}px`;
+    body.offsetHeight; // force reflow to commit open state
+
+    // 5. Animate grid rows to closed state
+    body.style.transition = `grid-template-rows ${DURATION}ms ${EASING}`;
+    body.style.gridTemplateRows = `${vizH1}px ${vurH}px ${carH}px 0px ${footerH1}px`;
+
+    setTimeout(() => {
+      body.style.transition = "";
+      body.style.gridTemplateRows = "";
+      ctrl.style.overflow = "";
+      footer.style.overflow = "";
+      p1.classList.remove("open", "exiting");
+      p2.classList.remove("open", "exiting");
+      panel.classList.remove("panel-visible", "open", "exiting");
+      modeGrp.classList.remove("exiting");
+      btn.setAttribute("aria-expanded", "false");
+      const rs = document.getElementById("renderStatus");
+      rs.innerHTML = ""; rs.classList.remove("fading", "marquee");
+      document.querySelector(".footer-center").insertBefore(rs, document.getElementById("footerToggle"));
+      if(pillRight){pillRight.offsetWidth;pillRight.style.opacity="1";}
+      menuAnimating = false;
+      centerCarousel();
+    }, DURATION + 20);
+  }
+}
+
+// Swipe gesture + click on footer handle
 (function() {
   const handle = document.getElementById("footerToggle");
-  let startY = 0, dragging = false;
+  const ctrl = document.querySelector(".controls");
+  const footer = document.querySelector(".app-footer");
+  const chev = handle.querySelector(".toggle-chev");
+  let startY = 0, dragging = false, skipClick = false;
+  let swipeIsOpen = false, swipePR = null;
   const THRESHOLD = 30;
-  handle.addEventListener("pointerdown", e => {
-    if (!document.body.dataset.compact || document.body.dataset.compact !== "true") return;
+
+  function isSwipeTarget(el) {
+    if (handle.contains(el)) return true;
+    if (!document.getElementById("renderPanel").classList.contains("panel-visible")) return false;
+    if (el.closest('button, input, a, select, .group-icon, .mute-label, .spinbox-wrap, .vreel-window, .vol-ring, #volumeGroup.vol-knob, .carousel, .footer-left, .footer-right')) return false;
+    if (el.closest('.controls, .app-footer')) return true;
+    return false;
+  }
+
+  function springChev() {
+    const rot = swipeIsOpen ? 'rotate(180deg)' : '';
+    chev.style.transition = "transform .3s cubic-bezier(.34,1.56,.64,1)";
+    chev.style.transform = rot;
+    setTimeout(() => { chev.style.transition = ""; chev.style.transform = ""; }, 300);
+  }
+
+  function resetCtrl() {
+    ctrl.style.transform = "";
+    ctrl.style.opacity = "";
+    ctrl.style.transition = "";
+  }
+
+  function springCtrl() {
+    ctrl.style.transition = "transform .3s cubic-bezier(.22,1,.36,1), opacity .3s ease";
+    ctrl.style.transform = "";
+    ctrl.style.opacity = "";
+    setTimeout(resetCtrl, 300);
+  }
+
+  document.addEventListener("pointerdown", e => {
+    if (document.body.dataset.compact !== "true" || menuAnimating) return;
+    if (!isSwipeTarget(e.target)) return;
     startY = e.clientY; dragging = true;
-    handle.setPointerCapture(e.pointerId);
-  });
-  handle.addEventListener("pointermove", e => { if (!dragging) return; e.preventDefault(); });
-  handle.addEventListener("pointerup", e => {
+    const captureEl = handle.contains(e.target) ? handle : e.target;
+    captureEl.setPointerCapture(e.pointerId);
+    if (chev) chev.style.transition = "";
+    swipeIsOpen = document.getElementById("renderPanel").classList.contains("panel-visible");
+    swipePR = handle.querySelector(".toggle-cell--right");
+  }, true);
+
+  document.addEventListener("pointermove", e => {
+    if (!dragging) return;
+    e.preventDefault();
+    const dy = e.clientY - startY;
+    if (chev) {
+      const rot = swipeIsOpen ? 'rotate(180deg) ' : '';
+      chev.style.transform = rot + `translateY(${dy * 0.45}px)`;
+    }
+    if (swipePR) {
+      const p = Math.min(1, Math.abs(dy) / THRESHOLD);
+      if (!swipeIsOpen && dy < 0) swipePR.style.opacity = String(1 - p);
+      else if (swipeIsOpen && dy > 0) swipePR.style.opacity = String(p);
+    }
+    // Sync controls slide during close swipe
+    if (swipeIsOpen && dy > 0) {
+      const slide = Math.min(dy * 0.5, 60);
+      ctrl.style.transform = `translateY(${slide}px)`;
+      ctrl.style.opacity = String(Math.max(0.3, 1 - dy / 200));
+    }
+  }, true);
+
+  document.addEventListener("pointerup", e => {
     if (!dragging) return;
     dragging = false;
     const dy = e.clientY - startY;
-    const panel = document.getElementById("renderPanel");
-    const isOpen = panel.classList.contains("panel-visible");
-    if (dy < -THRESHOLD && !isOpen) handle.click();   // swipe up → open
-    else if (dy > THRESHOLD && isOpen) handle.click(); // swipe down → close
+    if (chev) springChev();
+    if (Math.abs(dy) >= THRESHOLD) {
+      if (dy < -THRESHOLD && !swipeIsOpen) { toggleMobileMenu(true); skipClick = true; }
+      else if (dy > THRESHOLD && swipeIsOpen) { resetCtrl(); toggleMobileMenu(false); skipClick = true; }
+      else if (swipePR) { swipePR.style.opacity = swipeIsOpen ? "0" : ""; springCtrl(); }
+    } else {
+      if (swipePR) swipePR.style.opacity = swipeIsOpen ? "0" : "";
+      springCtrl();
+    }
+  }, true);
+
+  document.addEventListener("pointercancel", () => {
+    if (!dragging) return;
+    dragging = false;
+    if (chev) springChev();
+    if (swipePR) swipePR.style.opacity = swipeIsOpen ? "0" : "";
+    springCtrl();
+  }, true);
+
+  handle.addEventListener("click", () => {
+    if (skipClick) { skipClick = false; return; }
+    if (document.body.dataset.compact === "true") toggleMobileMenu();
   });
 })();
 
@@ -2875,17 +3512,70 @@ document.getElementById("footerToggle").addEventListener("click", () => {
   const volumeGroup = document.getElementById("volumeGroup");
   const volumeIconEl = document.getElementById("volumeIcon");
 
+  // Desktop: hover to expand
+  volumeIconEl.addEventListener("mouseenter", () => { if (!isCompact()) openGroup(volumeGroup); });
+  volumeGroup.addEventListener("mouseleave", () => { if (!isCompact()) closeGroup(volumeGroup); });
+
+  // Desktop: click = mute toggle
   volumeIconEl.addEventListener("click", () => {
-    if (volume > 0) {
-      volumeBeforeMute = volume;
-      setVolumeValue(0);
-    } else {
-      setVolumeValue(volumeBeforeMute || 100);
-    }
+    if (isCompact()) return; // compact handled by pointer events below
+    if (volume > 0) { volumeBeforeMute = volume; setVolumeValue(0); }
+    else { setVolumeValue(volumeBeforeMute || 100); }
   });
 
-  volumeIconEl.addEventListener("mouseenter", () => openGroup(volumeGroup));
-  volumeGroup.addEventListener("mouseleave", () => closeGroup(volumeGroup));
+  // Compact: tap = mute, long-press = show slider + swipe
+  (function() {
+    const LONG_PRESS = 300;
+    let lpTimer = null, isLong = false, startX = 0, startY = 0, startVol = 0;
+    const volRing = volumeGroup.querySelector('.vol-ring');
+    function updateKnob() {
+      if (volRing) volRing.style.setProperty('--vol', String(volume / 100));
+    }
+
+    volumeIconEl.addEventListener("pointerdown", (e) => {
+      if (!isCompact()) return;
+      e.preventDefault();
+      isLong = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      startVol = volume;
+      lpTimer = setTimeout(() => {
+        isLong = true;
+        volumeGroup.classList.add("vol-knob");
+        updateKnob();
+        volumeIconEl.setPointerCapture(e.pointerId);
+      }, LONG_PRESS);
+    });
+
+    volumeIconEl.addEventListener("pointermove", (e) => {
+      if (!isLong) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const range = window.innerHeight * 0.3;
+      const raw = startVol + ((dx - dy) / range) * 100;
+      const newVol = Math.round(clamp(raw, 0, 100));
+      if (raw > 100 || raw < 0) { startX = e.clientX; startY = e.clientY; startVol = newVol; }
+      setVolumeValue(newVol);
+      updateKnob();
+    });
+
+    function endPress(e) {
+      if (!isCompact()) return;
+      clearTimeout(lpTimer);
+      if (isLong) {
+        volumeGroup.classList.remove("vol-knob");
+        isLong = false;
+      } else {
+        // Short tap → mute toggle
+        if (volume > 0) { volumeBeforeMute = volume; setVolumeValue(0); }
+        else { setVolumeValue(volumeBeforeMute || 100); }
+        updateKnob();
+      }
+    }
+    volumeIconEl.addEventListener("pointerup", endPress);
+    volumeIconEl.addEventListener("pointercancel", endPress);
+    updateKnob();
+  })();
 
   // ── 3) Close mechanism: handle click ──
   expandGroups.forEach(group => {
